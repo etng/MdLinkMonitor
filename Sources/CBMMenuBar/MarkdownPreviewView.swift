@@ -17,6 +17,7 @@ struct MarkdownPreviewView: View {
     @State private var todayLogContent = ""
 
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+    private let markdownBottomAnchor = "markdown-bottom-anchor"
 
     var body: some View {
         NavigationSplitView {
@@ -50,17 +51,30 @@ struct MarkdownPreviewView: View {
 
                 Divider()
 
-                ScrollView {
-                    if content.isEmpty {
-                        Text(AppLocalizer.text(.emptyContent, language: language))
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 8)
-                    } else {
-                        Markdown(content)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        if content.isEmpty {
+                            Text(AppLocalizer.text(.emptyContent, language: language))
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                        } else {
+                            Markdown(content)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 4)
+                        }
+                        Color.clear
+                            .frame(height: 1)
+                            .id(markdownBottomAnchor)
+                    }
+                    .onChange(of: content) { _ in
+                        guard currentFilePath == todayFilePath else { return }
+                        scrollMarkdownToBottom(proxy: proxy, animated: false)
+                    }
+                    .onAppear {
+                        guard currentFilePath == todayFilePath else { return }
+                        scrollMarkdownToBottom(proxy: proxy, animated: false)
                     }
                 }
 
@@ -134,7 +148,10 @@ struct MarkdownPreviewView: View {
 
     private func loadSelectedContent() {
         let url = URL(filePath: currentFilePath)
-        content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let newContent = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        if newContent != content {
+            content = newContent
+        }
     }
 
     private func loadTodayLog() {
@@ -151,6 +168,7 @@ struct MarkdownPreviewView: View {
 
     private func refreshLivePanels() {
         if currentFilePath == todayFilePath {
+            loadSelectedContent()
             loadTodayLog()
         }
     }
@@ -170,5 +188,17 @@ struct MarkdownPreviewView: View {
 
         // Keep rendering lightweight while preserving latest diagnostics at top.
         return lines.suffix(400).reversed().joined(separator: "\n")
+    }
+
+    private func scrollMarkdownToBottom(proxy: ScrollViewProxy, animated: Bool) {
+        DispatchQueue.main.async {
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(markdownBottomAnchor, anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo(markdownBottomAnchor, anchor: .bottom)
+            }
+        }
     }
 }
