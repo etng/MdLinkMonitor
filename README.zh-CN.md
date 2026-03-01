@@ -4,11 +4,11 @@ English version: [README.md](./README.md)
 
 CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
 
-当开启监控后，它会监听剪贴板中的 Markdown 链接 `[label](link)`。如果链接是 GitHub 仓库地址（`https://github.com/owner/repo`），CBM 会：
+当开启监控后，它会监听剪贴板中的 Markdown 链接 `[label](link)`。CBM 会：
 
-1. 规范化仓库 URL（忽略 query/hash，处理末尾 `/` 和 `.git`）。
-2. 将任务行追加到当天 markdown 文件。
-3. 执行 `git c1 {repo}.git` 克隆仓库。
+1. 将去重后的任务行追加到当天 markdown 文件。
+2. 按可配置域名识别 Git 仓库链接（如 `github.com`、`gitlab.com`）。
+3. 对命中的仓库链接进行 URL 规范化（忽略 query/hash，处理末尾 `/` 和 `.git`）并执行 `git c1 {repo}.git`。
 
 ## 核心功能
 
@@ -19,10 +19,14 @@ CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
 - 每日输出 markdown 到可配置目录（默认 `~/Documents/cbm`）。
 - 同目录写入每日日志（`logs_yyyyMMdd.log`）。
 - 当天去重（写入与 clone 都去重）。
+- 非仓库 Markdown 链接也会写入（但不会 clone）。
+- 仓库识别支持可配置域名（默认 `github.com`、`gitlab.com`）。
 - 支持可选多链接处理模式。
 - 菜单直接展示最近 7 天文件。
+- 设置项迁移到独立设置窗口。
 - 预览窗口支持左侧历史文件列表，点击切换预览。
 - 预览窗口支持复制 Markdown 原文。
+- 预览今天文件时，底部提供默认折叠且自动刷新的今日日志面板。
 - CLI 支持获取今天文件路径与内容。
 - 非 App Store 更新机制使用 Sparkle 2。
 
@@ -30,7 +34,7 @@ CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
 
 - 目录：`~/Documents/cbm`
 - 文件名：`links_yyyyMMdd.md`
-- 行格式：`* [ ] [label](https://github.com/owner/repo)`
+- 行格式：`* [ ] [label](https://example.com/path)`
 - 日志文件：`logs_yyyyMMdd.log`
 
 ## 开发
@@ -72,6 +76,9 @@ CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
   - 查看当日日志：`~/Documents/cbm/logs_yyyyMMdd.log`（或你配置的输出目录）。
   - 成功写入时，日志会出现 `已写入 markdown: ...`。
   - Debug 构建会输出 `[event]` 前缀的 UI 事件日志。
+- 若链接未命中仓库域名：
+  - 仍会写入 markdown。
+  - 会跳过 clone（设计如此）。
 - 若点击菜单项后只听到提示音没有弹窗：
   - 更新到最新版本，当前逻辑已改为菜单关闭后异步触发动作。
 

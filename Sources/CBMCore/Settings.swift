@@ -18,6 +18,7 @@ public struct AppSettings: Equatable, Sendable {
     public var allowMultipleLinks: Bool
     public var launchAtLogin: Bool
     public var outputDirectoryPath: String
+    public var repositoryDomains: [String]
     public var language: AppLanguage
 
     public init(
@@ -26,6 +27,7 @@ public struct AppSettings: Equatable, Sendable {
         allowMultipleLinks: Bool = false,
         launchAtLogin: Bool = false,
         outputDirectoryPath: String = DailyMarkdownStore.defaultDirectoryPath,
+        repositoryDomains: [String] = ["github.com", "gitlab.com"],
         language: AppLanguage = .zhHans
     ) {
         self.monitoringEnabled = monitoringEnabled
@@ -33,7 +35,23 @@ public struct AppSettings: Equatable, Sendable {
         self.allowMultipleLinks = allowMultipleLinks
         self.launchAtLogin = launchAtLogin
         self.outputDirectoryPath = outputDirectoryPath
+        self.repositoryDomains = Self.normalizeDomains(repositoryDomains)
         self.language = language
+    }
+
+    public static func normalizeDomains(_ domains: [String]) -> [String] {
+        let cleaned = domains
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+        return Array(Set(cleaned)).sorted()
+    }
+
+    public static func parseDomains(from text: String) -> [String] {
+        normalizeDomains(
+            text
+                .split(whereSeparator: { $0 == "," || $0 == "\n" || $0 == " " || $0 == "\t" })
+                .map(String.init)
+        )
     }
 }
 
@@ -49,6 +67,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let allowMultipleLinks = "cbm.allowMultipleLinks"
         static let launchAtLogin = "cbm.launchAtLogin"
         static let outputDirectoryPath = "cbm.outputDirectoryPath"
+        static let repositoryDomains = "cbm.repositoryDomains"
         static let language = "cbm.language"
     }
 
@@ -61,12 +80,15 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
     public func load() -> AppSettings {
         let language = AppLanguage(rawValue: defaults.string(forKey: Keys.language) ?? "") ?? .zhHans
 
+        let domainsRaw = defaults.string(forKey: Keys.repositoryDomains) ?? "github.com,gitlab.com"
+
         return AppSettings(
             monitoringEnabled: defaults.object(forKey: Keys.monitoringEnabled) as? Bool ?? false,
             notificationsEnabled: defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true,
             allowMultipleLinks: defaults.object(forKey: Keys.allowMultipleLinks) as? Bool ?? false,
             launchAtLogin: defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false,
             outputDirectoryPath: defaults.string(forKey: Keys.outputDirectoryPath) ?? DailyMarkdownStore.defaultDirectoryPath,
+            repositoryDomains: AppSettings.parseDomains(from: domainsRaw),
             language: language
         )
     }
@@ -77,6 +99,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.allowMultipleLinks, forKey: Keys.allowMultipleLinks)
         defaults.set(settings.launchAtLogin, forKey: Keys.launchAtLogin)
         defaults.set(settings.outputDirectoryPath, forKey: Keys.outputDirectoryPath)
+        defaults.set(settings.repositoryDomains.joined(separator: ","), forKey: Keys.repositoryDomains)
         defaults.set(settings.language.rawValue, forKey: Keys.language)
     }
 }

@@ -30,10 +30,15 @@ public final class ClipboardCaptureOrchestrator {
     public func process(
         clipboardText: String,
         allowMultipleLinks: Bool,
+        repositoryDomains: Set<String>,
         store: DailyMarkdownStore,
         date: Date = Date()
     ) -> CaptureProcessResult {
-        let captures = ClipboardContentProcessor.extractRepositoryCaptures(from: clipboardText, allowMultipleLinks: allowMultipleLinks)
+        let captures = ClipboardContentProcessor.extractLinkCaptures(
+            from: clipboardText,
+            allowMultipleLinks: allowMultipleLinks,
+            repositoryDomains: repositoryDomains
+        )
         guard !captures.isEmpty else {
             return .empty
         }
@@ -48,20 +53,30 @@ public final class ClipboardCaptureOrchestrator {
 
         for capture in captures {
             do {
-                let appended = try store.appendIfNeeded(label: capture.label, repository: capture.repository, date: date)
+                let appended = try store.appendIfNeeded(
+                    label: capture.label,
+                    linkURL: capture.markdownURL,
+                    dedupKey: capture.dedupKey,
+                    date: date
+                )
                 if appended {
                     result.appendedCount += 1
                     let filePath = store.fileURL(for: date).path(percentEncoded: false)
-                    logger?.log(.info, "Appended markdown entry: \(filePath) [\(capture.repository.canonicalURL)]")
-                    let cloneResult = cloneExecutor.clone(repository: capture.repository)
-                    if cloneResult.isSuccess {
-                        result.clonedCount += 1
+                    logger?.log(.info, "Appended markdown entry: \(filePath) [\(capture.markdownURL)]")
+
+                    if let repository = capture.repository {
+                        let cloneResult = cloneExecutor.clone(repository: repository)
+                        if cloneResult.isSuccess {
+                            result.clonedCount += 1
+                        } else {
+                            result.errors.append("Clone failed: \(repository.cloneURL)")
+                        }
                     } else {
-                        result.errors.append("Clone failed: \(capture.repository.cloneURL)")
+                        logger?.log(.info, "Skip clone for non-repository link: \(capture.url)")
                     }
                 } else {
                     result.skippedCount += 1
-                    logger?.log(.info, "Skip duplicate for day: \(capture.repository.dailyDedupKey)")
+                    logger?.log(.info, "Skip duplicate for day: \(capture.dedupKey)")
                 }
             } catch {
                 result.errors.append(error.localizedDescription)
