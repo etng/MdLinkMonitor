@@ -56,16 +56,24 @@ public struct GitC1CloneExecutor {
         self.logger = logger
     }
 
-    public func clone(repository: GitHubRepository) -> CommandExecutionResult {
-        let cloneURL = repository.cloneURL
-        logger?.log(.info, "Start clone: \(cloneURL)")
+    public func clone(
+        repository: GitRepository,
+        commandTemplate: String = AppSettings.defaultCloneCommandTemplate
+    ) -> CommandExecutionResult {
+        let normalizedTemplate = AppSettings.normalizeCloneCommandTemplate(commandTemplate)
+        let commandLine = normalizedTemplate.replacingOccurrences(
+            of: AppSettings.cloneCommandPlaceholder,
+            with: repository.canonicalURL
+        )
 
-        let result = commandRunner.run(command: "/usr/bin/env", arguments: ["git", "c1", cloneURL])
+        logger?.log(.info, "Start clone: \(repository.canonicalURL) with template: \(normalizedTemplate)")
+
+        let result = commandRunner.run(command: "/bin/zsh", arguments: ["-lc", commandLine])
 
         if result.isSuccess {
-            logger?.log(.info, "Clone success: \(cloneURL)")
+            logger?.log(.info, "Clone success: \(repository.canonicalURL)")
         } else {
-            logger?.log(.error, "Clone failed(\(result.exitCode)): \(cloneURL) \(result.standardError)")
+            logger?.log(.error, "Clone failed(\(result.exitCode)): \(repository.canonicalURL) \(result.standardError)")
         }
 
         return result

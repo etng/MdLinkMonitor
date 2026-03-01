@@ -74,6 +74,10 @@ final class MenuBarViewModel: ObservableObject {
         settings.repositoryDomains.joined(separator: "\n")
     }
 
+    var cloneCommandTemplateText: String {
+        settings.cloneCommandTemplate
+    }
+
     func updateMonitoringEnabled(_ enabled: Bool) {
         logEvent("UI toggle monitoring -> \(enabled)")
         updateSettings { state in
@@ -176,6 +180,27 @@ final class MenuBarViewModel: ObservableObject {
         let message = local("仓库域名配置已更新", "Repository domains updated") + ": \(fallback.joined(separator: ", "))"
         setStatus(message)
         logger.log(.info, message)
+    }
+
+    func updateCloneCommandTemplate(from text: String) {
+        let normalized = AppSettings.normalizeCloneCommandTemplate(text)
+
+        updateSettings { state in
+            state.cloneCommandTemplate = normalized
+        }
+
+        let isFallback = text.trimmingCharacters(in: .whitespacesAndNewlines) != normalized
+        let message: String
+        if isFallback {
+            message = local(
+                "克隆命令模板无效，已恢复默认（需包含 {repo}）",
+                "Invalid clone template, reverted to default (must include {repo})"
+            )
+        } else {
+            message = local("克隆命令模板已更新", "Clone command template updated")
+        }
+        setStatus(message)
+        logger.log(.info, "\(message): \(normalized)")
     }
 
     func chooseOutputDirectory() {
@@ -299,6 +324,7 @@ final class MenuBarViewModel: ObservableObject {
             clipboardText: text,
             allowMultipleLinks: settings.allowMultipleLinks,
             repositoryDomains: Set(settings.repositoryDomains),
+            cloneCommandTemplate: settings.cloneCommandTemplate,
             store: store
         )
 

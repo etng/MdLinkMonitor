@@ -13,6 +13,9 @@ public enum AppLanguage: String, CaseIterable, Codable, Sendable {
 }
 
 public struct AppSettings: Equatable, Sendable {
+    public static let cloneCommandPlaceholder = "{repo}"
+    public static let defaultCloneCommandTemplate = "git c1 {repo}.git"
+
     public var monitoringEnabled: Bool
     public var notificationsEnabled: Bool
     public var allowMultipleLinks: Bool
@@ -22,6 +25,7 @@ public struct AppSettings: Equatable, Sendable {
     public var launchAtLogin: Bool
     public var outputDirectoryPath: String
     public var repositoryDomains: [String]
+    public var cloneCommandTemplate: String
     public var language: AppLanguage
 
     public init(
@@ -34,6 +38,7 @@ public struct AppSettings: Equatable, Sendable {
         launchAtLogin: Bool = false,
         outputDirectoryPath: String = DailyMarkdownStore.defaultDirectoryPath,
         repositoryDomains: [String] = ["github.com", "gitlab.com"],
+        cloneCommandTemplate: String = AppSettings.defaultCloneCommandTemplate,
         language: AppLanguage = .zhHans
     ) {
         self.monitoringEnabled = monitoringEnabled
@@ -45,6 +50,7 @@ public struct AppSettings: Equatable, Sendable {
         self.launchAtLogin = launchAtLogin
         self.outputDirectoryPath = outputDirectoryPath
         self.repositoryDomains = Self.normalizeDomains(repositoryDomains)
+        self.cloneCommandTemplate = Self.normalizeCloneCommandTemplate(cloneCommandTemplate)
         self.language = language
     }
 
@@ -61,6 +67,14 @@ public struct AppSettings: Equatable, Sendable {
                 .split(whereSeparator: { $0 == "," || $0 == "\n" || $0 == " " || $0 == "\t" })
                 .map(String.init)
         )
+    }
+
+    public static func normalizeCloneCommandTemplate(_ template: String) -> String {
+        let trimmed = template.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.contains(cloneCommandPlaceholder) else {
+            return defaultCloneCommandTemplate
+        }
+        return trimmed
     }
 }
 
@@ -80,6 +94,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let launchAtLogin = "cbm.launchAtLogin"
         static let outputDirectoryPath = "cbm.outputDirectoryPath"
         static let repositoryDomains = "cbm.repositoryDomains"
+        static let cloneCommandTemplate = "cbm.cloneCommandTemplate"
         static let language = "cbm.language"
     }
 
@@ -104,6 +119,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
             launchAtLogin: defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false,
             outputDirectoryPath: defaults.string(forKey: Keys.outputDirectoryPath) ?? DailyMarkdownStore.defaultDirectoryPath,
             repositoryDomains: AppSettings.parseDomains(from: domainsRaw),
+            cloneCommandTemplate: defaults.string(forKey: Keys.cloneCommandTemplate) ?? AppSettings.defaultCloneCommandTemplate,
             language: language
         )
     }
@@ -118,6 +134,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.launchAtLogin, forKey: Keys.launchAtLogin)
         defaults.set(settings.outputDirectoryPath, forKey: Keys.outputDirectoryPath)
         defaults.set(settings.repositoryDomains.joined(separator: ","), forKey: Keys.repositoryDomains)
+        defaults.set(settings.cloneCommandTemplate, forKey: Keys.cloneCommandTemplate)
         defaults.set(settings.language.rawValue, forKey: Keys.language)
     }
 }

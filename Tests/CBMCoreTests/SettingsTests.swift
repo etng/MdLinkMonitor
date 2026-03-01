@@ -21,6 +21,7 @@ func settingsStoreRoundTrip() {
         launchAtLogin: true,
         outputDirectoryPath: "~/Documents/cbm-custom",
         repositoryDomains: ["github.com", "gitlab.com", "self-host.example.com"],
+        cloneCommandTemplate: "git clone {repo}.git",
         language: .en
     )
 
@@ -28,4 +29,10 @@ func settingsStoreRoundTrip() {
     let loaded = store.load()
 
     #expect(loaded == expected)
+}
+
+@Test
+func cloneCommandTemplateFallsBackWhenMissingPlaceholder() {
+    let settings = AppSettings(cloneCommandTemplate: "git clone")
+    #expect(settings.cloneCommandTemplate == AppSettings.defaultCloneCommandTemplate)
 }

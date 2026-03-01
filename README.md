@@ -8,7 +8,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 
 1. Appends deduplicated markdown task lines into the daily file.
 2. Detects Git repository links by configured domains (for example `github.com`, `gitlab.com`).
-3. Normalizes matched repository URLs (ignores query/hash, trims trailing slash and `.git`), then runs `git c1 {repo}.git`.
+3. Normalizes matched repository URLs (ignores query/hash, trims trailing slash and `.git`), then runs your configured clone command template (default: `git c1 {repo}.git`).
 
 ## Key Features
 
@@ -22,6 +22,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Daily de-duplication for both markdown append and clone.
 - Non-repository markdown links are still appended (without clone).
 - Git repository recognition supports configurable domains (for example `github.com`, `gitlab.com`).
+- Configurable clone command template with `{repo}` placeholder (default: `git c1 {repo}.git`).
 - Optional multi-link processing for clipboard text containing multiple markdown links.
 - Recent 7-day files shown directly in menu.
 - Dedicated Settings window for configuration.
@@ -119,7 +120,7 @@ hdiutil create \
 
 ## Notes
 
-- Clone command is fixed to `git c1 {repo}.git` in this iteration.
+- Clone command is configurable in Settings via template (must include `{repo}`).
 - Daily dedup means duplicates are blocked only within the same day.
 - Sparkle update checks require proper app signing and appcast setup in distribution.
 - Update startup failures are handled silently and only written to daily logs.

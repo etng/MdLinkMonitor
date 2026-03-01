@@ -14,7 +14,7 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 
 1. As a user, I want CBM to run in the menu bar and be easy to enable/disable.
 2. As a user, when I copy `[label](link)` I want it appended into daily notes.
-3. As a user, I want CBM to run `git c1 {repo}.git` automatically for recognized repository links.
+3. As a user, I want CBM to run my configured clone command template automatically for recognized repository links.
 4. As a user, I want daily de-duplication so repeated copy does not create duplicate lines or duplicate clone actions on the same day.
 5. As a user, I want optional multi-link parsing for clipboard content with multiple Markdown links.
 6. As a user, I want to configure repository domains (for example `github.com`, `gitlab.com`).
@@ -68,8 +68,10 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 
 ### 4.6 Clone Command
 
-- On recognized and non-duplicate repository links: run `git c1 {repo}.git`.
+- On recognized and non-duplicate repository links: run configured clone command template.
+- Template must include `{repo}` placeholder.
 - `{repo}` is normalized HTTPS URL without `.git` suffix.
+- Default template: `git c1 {repo}.git`.
 - Non-repository links must be appended but never cloned.
 
 ### 4.7 UI and Settings
@@ -88,6 +90,7 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
   - Output Directory
   - Language (中文 / English)
   - Repository Domains editor + apply action
+  - Clone command template editor + apply action
 - Clicking a recent file opens markdown preview window.
 - Preview window has left sidebar for historical file browsing and right panel markdown rendering.
 - Today preview includes a default-collapsed live log panel that auto-refreshes from `logs_yyyyMMdd.log`.
@@ -127,7 +130,6 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 
 - Cross-device sync.
 - Full-text search across historical files.
-- Custom clone command templates (deferred by user decision).
 
 ## 7. Acceptance Criteria
 
