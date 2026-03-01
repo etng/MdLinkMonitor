@@ -220,14 +220,21 @@ final class MenuBarViewModel: ObservableObject {
     func openTodayPreview() {
         let path = openTodayFilePath()
         logEvent("UI action openTodayPreview path=\(path)")
-        openPreview(filePath: path)
+        openPreview(filePath: path, panel: .preview)
     }
 
-    func openPreview(filePath: String) {
+    func openCalendar() {
+        let path = openTodayFilePath()
+        logEvent("UI action openCalendar path=\(path)")
+        openPreview(filePath: path, panel: .calendar)
+    }
+
+    func openPreview(filePath: String, panel: PreviewPanelDestination = .preview) {
         logEvent("UI action openPreview path=\(filePath)")
         windowPresenter.showPreview(
             initialFilePath: filePath,
-            model: self
+            model: self,
+            initialPanel: panel
         )
 
         let message = local("已打开预览窗口", "Preview window opened")
@@ -239,18 +246,27 @@ final class MenuBarViewModel: ObservableObject {
 
     func openAbout() {
         logEvent("UI action openAbout")
-        windowPresenter.showAbout(language: settings.language)
+        openPreview(filePath: openTodayFilePath(), panel: .about)
 
-        let message = local("已打开关于窗口", "About window opened")
+        let message = local("已打开关于面板", "About panel opened")
         setStatus(message)
         logger.log(.info, message)
     }
 
     func openSettings() {
         logEvent("UI action openSettings")
-        windowPresenter.showSettings(model: self, language: settings.language)
+        openPreview(filePath: openTodayFilePath(), panel: .settings)
 
-        let message = local("已打开设置窗口", "Settings window opened")
+        let message = local("已打开设置面板", "Settings panel opened")
+        setStatus(message)
+        logger.log(.info, message)
+    }
+
+    func openUpdatesPanel() {
+        logEvent("UI action openUpdatesPanel")
+        openPreview(filePath: openTodayFilePath(), panel: .updates)
+
+        let message = local("已打开更新面板", "Updates panel opened")
         setStatus(message)
         logger.log(.info, message)
     }

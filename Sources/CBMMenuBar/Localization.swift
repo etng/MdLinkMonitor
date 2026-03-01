@@ -17,6 +17,8 @@ enum L10nKey {
     case repositoryDomains
     case applyDomains
     case language
+    case previewMenu
+    case today
     case recentFiles
     case noRecentFiles
     case openToday
@@ -58,6 +60,8 @@ enum AppLocalizer {
             case .repositoryDomains: return "仓库域名（每行一个）"
             case .applyDomains: return "应用域名配置"
             case .language: return "语言"
+            case .previewMenu: return "预览"
+            case .today: return "今天"
             case .recentFiles: return "最近文件"
             case .noRecentFiles: return "暂无记录"
             case .openToday: return "打开今天文件"
@@ -95,6 +99,8 @@ enum AppLocalizer {
             case .repositoryDomains: return "Repository Domains (one per line)"
             case .applyDomains: return "Apply Domains"
             case .language: return "Language"
+            case .previewMenu: return "Preview"
+            case .today: return "Today"
             case .recentFiles: return "Recent Files"
             case .noRecentFiles: return "No Files"
             case .openToday: return "Open Today"
