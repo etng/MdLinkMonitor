@@ -6,7 +6,7 @@
 
 ## 近期在办
 
-- [ ] GitHub Actions 增加 DMG 结构校验并执行 minor 版本发布验证
+- [ ] （暂无）
 
 ## 近期已办
 
@@ -102,6 +102,8 @@
 - [x] 文档补充未付费开发者账号场景下的手动信任安装说明（中英文）
 - [x] DMG 安装镜像改造为拖拽安装体验（含 `Applications` 快捷方式）
 - [x] README 中补充 DMG 拖拽安装形态说明（中英文）
+- [x] GitHub Actions 增加 DMG 结构校验并执行 minor 版本发布验证
+- [x] 发布 `v0.3.0`（minor）并通过 Release workflow 全链路验证
 
 ## 远期待办
 
