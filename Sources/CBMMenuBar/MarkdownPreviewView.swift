@@ -3,6 +3,24 @@ import CBMCore
 import MarkdownUI
 import SwiftUI
 
+private enum PreviewPanel: CaseIterable {
+    case preview
+    case calendar
+    case settings
+    case updates
+    case about
+
+    var symbolName: String {
+        switch self {
+        case .preview: return "doc.text.image"
+        case .calendar: return "calendar"
+        case .settings: return "slider.horizontal.3"
+        case .updates: return "arrow.triangle.2.circlepath"
+        case .about: return "info.circle"
+        }
+    }
+}
+
 struct MarkdownPreviewView: View {
     let initialFilePath: String
     @ObservedObject var model: MenuBarViewModel
@@ -11,6 +29,10 @@ struct MarkdownPreviewView: View {
     @State private var filesByYMD: [String: URL] = [:]
     @State private var selectedDate = Date()
     @State private var selectedDateHasRecord = false
+
+    @State private var selectedPanel: PreviewPanel = .preview
+    @State private var hoveredPanel: PreviewPanel?
+    @State private var isCalendarQuickExpanded = false
 
     @State private var selectedFilePath: String?
     @State private var content = ""
@@ -23,151 +45,16 @@ struct MarkdownPreviewView: View {
     private let markdownBottomAnchor = "markdown-bottom-anchor"
 
     var body: some View {
-        NavigationSplitView {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(AppLocalizer.text(.calendar, language: language))
-                    .font(.headline)
-
-                DatePicker(
-                    "",
-                    selection: $selectedDate,
-                    displayedComponents: .date
-                )
-                .labelsHidden()
-                .datePickerStyle(.graphical)
-                .scaleEffect(calendarScale, anchor: .topLeading)
-                .frame(height: 300 * calendarScale)
-                .onChange(of: selectedDate) { _ in
-                    syncSelectedFileForSelectedDate()
-                }
-
-                Button(AppLocalizer.text(.goToday, language: language)) {
-                    selectedDate = Date()
-                    syncSelectedFileForSelectedDate()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-
-                Text(
-                    selectedDateHasRecord
-                        ? (language == .zhHans ? "该日期有记录" : "Record available for selected date")
-                        : AppLocalizer.text(.noFileForDate, language: language)
-                )
-                .font(.caption)
-                .foregroundStyle(selectedDateHasRecord ? .green : .secondary)
-
-                Spacer()
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .navigationTitle(sidebarTitle)
-            .navigationSplitViewColumnWidth(min: sidebarWidth, ideal: sidebarWidth + 16, max: sidebarWidth + 80)
-        } detail: {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Button(model.text(.openSettings)) {
-                        model.openSettings()
-                    }
-                    Button(model.text(.checkForUpdates)) {
-                        model.checkForUpdates()
-                    }
-                    Button(model.text(.about)) {
-                        model.openAbout()
-                    }
-                    Spacer()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-
-                HStack {
-                    Text(currentFilePath ?? AppLocalizer.text(.noFileForDate, language: language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer()
-                    Button(AppLocalizer.text(.copyMarkdown, language: language)) {
-                        copyMarkdownRaw()
-                    }
-                    .disabled(selectedFilePath == nil)
-                    Button(AppLocalizer.text(.reload, language: language)) {
-                        reloadFilesAndContent()
-                    }
-                }
-                if copyFeedbackVisible {
-                    Text(AppLocalizer.text(.copied, language: language))
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                }
-                Text(model.statusText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        if content.isEmpty {
-                            Text(
-                                selectedFilePath == nil
-                                    ? AppLocalizer.text(.noFileForDate, language: language)
-                                    : AppLocalizer.text(.emptyContent, language: language)
-                            )
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 8)
-                        } else {
-                            Markdown(content)
-                                .font(.system(size: markdownFontSize))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top, 4)
-                        }
-                        Color.clear
-                            .frame(height: 1)
-                            .id(markdownBottomAnchor)
-                    }
-                    .onChange(of: content) { _ in
-                        guard currentFilePath == todayFilePath else { return }
-                        scrollMarkdownToBottom(proxy: proxy, animated: false)
-                    }
-                    .onAppear {
-                        guard currentFilePath == todayFilePath else { return }
-                        scrollMarkdownToBottom(proxy: proxy, animated: false)
-                    }
-                }
-
-                if currentFilePath == todayFilePath {
-                    Divider()
-
-                    Button {
-                        showLogPanel.toggle()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: showLogPanel ? "chevron.down" : "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text(AppLocalizer.text(.todayLogs, language: language))
-                                .font(.subheadline)
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if showLogPanel {
-                        ScrollView {
-                            Text(todayLogContent.isEmpty ? "-" : todayLogContent)
-                                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(minHeight: 120, maxHeight: 180)
-                    }
-                }
-            }
-            .padding(16)
+        HStack(spacing: 0) {
+            leftSidebar
+            Divider()
+            rightPanel
         }
-        .frame(minWidth: 960, minHeight: 640)
+        .frame(minWidth: 980, minHeight: 680)
         .onAppear(perform: reloadFilesAndContent)
+        .onChange(of: selectedDate) { _ in
+            syncSelectedFileForSelectedDate()
+        }
         .onChange(of: selectedFilePath) { _ in
             loadSelectedContent()
             loadTodayLog()
@@ -197,12 +84,8 @@ struct MarkdownPreviewView: View {
     }
 
     private var sidebarWidth: CGFloat {
-        let base = 250.0 + (calendarScale - 1.0) * 220.0
-        return CGFloat(max(300.0, min(460.0, base)))
-    }
-
-    private var sidebarTitle: String {
-        AppLocalizer.text(.historyFiles, language: language)
+        let base = 210 + (calendarScale - 1.0) * 120
+        return CGFloat(max(190, min(280, base)))
     }
 
     private var currentFilePath: String? {
@@ -221,6 +104,355 @@ struct MarkdownPreviewView: View {
         return URL(filePath: outputDir)
             .appendingPathComponent("logs_\(ymd).log")
             .path(percentEncoded: false)
+    }
+
+    private var leftSidebar: some View {
+        VStack(alignment: .center, spacing: 12) {
+            VStack(spacing: 10) {
+                ForEach(PreviewPanel.allCases, id: \.self) { panel in
+                    navButton(for: panel)
+                }
+            }
+            .padding(.top, 14)
+
+            Text(panelTitle(hoveredPanel ?? selectedPanel))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Divider()
+                .padding(.horizontal, 8)
+
+            DisclosureGroup(isExpanded: $isCalendarQuickExpanded) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        selectedPanel = .calendar
+                    } label: {
+                        Label(local("打开大日历", "Open Full Calendar"), systemImage: "calendar.badge.clock")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        selectedDate = Date()
+                        syncSelectedFileForSelectedDate()
+                        selectedPanel = .calendar
+                    } label: {
+                        Label(model.text(.goToday), systemImage: "scope")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 4)
+            } label: {
+                Label(model.text(.calendar), systemImage: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(local("最近日期", "Recent Dates"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                if files.isEmpty {
+                    Text(model.text(.noRecentFiles))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(Array(files.prefix(7)), id: \.path) { file in
+                        Button(shortDateLabel(for: file)) {
+                            openFileInPreview(file)
+                        }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10)
+
+            Spacer()
+        }
+        .frame(minWidth: sidebarWidth, idealWidth: sidebarWidth, maxWidth: sidebarWidth, maxHeight: .infinity)
+        .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    private var rightPanel: some View {
+        Group {
+            switch selectedPanel {
+            case .preview:
+                previewPanel
+            case .calendar:
+                calendarPanel
+            case .settings:
+                SettingsView(model: model)
+            case .updates:
+                updatesPanel
+            case .about:
+                AboutView(language: language)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(8)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var previewPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Label(model.text(.previewTitle), systemImage: "doc.richtext")
+                    .font(.headline)
+
+                Spacer()
+
+                iconActionButton(
+                    systemName: "arrow.clockwise",
+                    title: model.text(.reload),
+                    action: reloadFilesAndContent
+                )
+
+                iconActionButton(
+                    systemName: "doc.on.doc",
+                    title: model.text(.copyMarkdown),
+                    action: copyMarkdownRaw
+                )
+                .disabled(selectedFilePath == nil)
+            }
+
+            Text(currentFilePath ?? model.text(.noFileForDate))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            if copyFeedbackVisible {
+                Text(model.text(.copied))
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            }
+
+            Text(model.statusText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            Divider()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    if content.isEmpty {
+                        Text(
+                            selectedFilePath == nil
+                                ? model.text(.noFileForDate)
+                                : model.text(.emptyContent)
+                        )
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                    } else {
+                        Markdown(content)
+                            .font(.system(size: markdownFontSize))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
+                    }
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id(markdownBottomAnchor)
+                }
+                .onChange(of: content) { _ in
+                    guard currentFilePath == todayFilePath else { return }
+                    scrollMarkdownToBottom(proxy: proxy, animated: false)
+                }
+                .onAppear {
+                    guard currentFilePath == todayFilePath else { return }
+                    scrollMarkdownToBottom(proxy: proxy, animated: false)
+                }
+            }
+
+            if currentFilePath == todayFilePath {
+                Divider()
+
+                Button {
+                    showLogPanel.toggle()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: showLogPanel ? "chevron.down.circle.fill" : "chevron.right.circle")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(model.text(.todayLogs))
+                            .font(.subheadline)
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if showLogPanel {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            Text(todayLogContent.isEmpty ? "-" : todayLogContent)
+                                .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .id("today-log-top")
+                        }
+                        .frame(minHeight: 120, maxHeight: 200)
+                        .onChange(of: todayLogContent) { _ in
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo("today-log-top", anchor: .top)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(18)
+    }
+
+    private var calendarPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label(model.text(.calendar), systemImage: "calendar")
+                    .font(.title3.weight(.semibold))
+
+                Spacer()
+
+                Button {
+                    selectedDate = Date()
+                    syncSelectedFileForSelectedDate()
+                } label: {
+                    Label(model.text(.goToday), systemImage: "scope")
+                }
+                .buttonStyle(.bordered)
+            }
+
+            DatePicker(
+                "",
+                selection: $selectedDate,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.graphical)
+            .scaleEffect(max(1.1, calendarScale + 0.2), anchor: .top)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .padding(.vertical, 8)
+
+            Text(
+                selectedDateHasRecord
+                    ? local("该日期有记录", "Record available for selected date")
+                    : model.text(.noFileForDate)
+            )
+            .font(.subheadline)
+            .foregroundStyle(selectedDateHasRecord ? .green : .secondary)
+
+            if selectedDateHasRecord {
+                Button {
+                    selectedPanel = .preview
+                } label: {
+                    Label(local("在预览中打开所选日期", "Open Selected Date in Preview"), systemImage: "doc.text")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Spacer()
+        }
+        .padding(22)
+    }
+
+    private var updatesPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label(model.text(.checkForUpdates), systemImage: "sparkles")
+                .font(.title3.weight(.semibold))
+
+            Text(local(
+                "通过 Sparkle 2 检查可用版本。若检查失败会静默处理并写入当日日志。",
+                "Check for updates via Sparkle 2. Failures are handled silently and written to the daily log."
+            ))
+            .font(.callout)
+            .foregroundStyle(.secondary)
+
+            Button {
+                model.checkForUpdates()
+            } label: {
+                Label(model.text(.checkForUpdates), systemImage: "arrow.triangle.2.circlepath")
+            }
+            .buttonStyle(.borderedProminent)
+
+            Divider()
+
+            Text(model.statusText)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(22)
+    }
+
+    private func navButton(for panel: PreviewPanel) -> some View {
+        let isActive = panel == selectedPanel
+
+        return Button {
+            selectedPanel = panel
+        } label: {
+            Image(systemName: panel.symbolName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isActive ? .white : .primary)
+                .frame(width: 36, height: 36)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(isActive ? Color.accentColor : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .help(panelTitle(panel))
+        .onHover { hovering in
+            hoveredPanel = hovering ? panel : nil
+        }
+    }
+
+    private func iconActionButton(systemName: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 30, height: 26)
+        }
+        .buttonStyle(.bordered)
+        .help(title)
+    }
+
+    private func panelTitle(_ panel: PreviewPanel) -> String {
+        switch panel {
+        case .preview: return model.text(.previewTitle)
+        case .calendar: return model.text(.calendar)
+        case .settings: return model.text(.settingsTitle)
+        case .updates: return model.text(.checkForUpdates)
+        case .about: return model.text(.about)
+        }
+    }
+
+    private func shortDateLabel(for file: URL) -> String {
+        guard let date = dateFromFileURL(file) else {
+            return file.lastPathComponent
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = language == .zhHans
+            ? Locale(identifier: "zh_Hans_CN")
+            : Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private func openFileInPreview(_ file: URL) {
+        guard let date = dateFromFileURL(file) else { return }
+        selectedDate = date
+        syncSelectedFileForSelectedDate()
+        selectedPanel = .preview
     }
 
     private func reloadFilesAndContent() {
@@ -291,7 +523,6 @@ struct MarkdownPreviewView: View {
     }
 
     private func loadTodayLog() {
-        // Logs panel is mainly for today's preview diagnostics.
         guard currentFilePath == todayFilePath else {
             todayLogContent = ""
             return
@@ -303,10 +534,25 @@ struct MarkdownPreviewView: View {
     }
 
     private func refreshLivePanels() {
+        refreshFileIndexIfNeeded()
+
         if currentFilePath == todayFilePath {
             loadSelectedContent()
             loadTodayLog()
         }
+    }
+
+    private func refreshFileIndexIfNeeded() {
+        let store = DailyMarkdownStore(baseDirectoryPath: outputDirectoryPath)
+        let latestFiles = (try? store.listRecentDailyFiles(limit: nil)) ?? []
+
+        let oldPaths = files.map { $0.path(percentEncoded: false) }
+        let newPaths = latestFiles.map { $0.path(percentEncoded: false) }
+        guard oldPaths != newPaths else { return }
+
+        files = latestFiles
+        filesByYMD = makeFileMapByYMD(latestFiles)
+        syncSelectedFileForSelectedDate()
     }
 
     private func copyMarkdownRaw() {
@@ -322,7 +568,6 @@ struct MarkdownPreviewView: View {
         let lines = raw.split(whereSeparator: \.isNewline).map(String.init)
         guard !lines.isEmpty else { return "" }
 
-        // Keep rendering lightweight while preserving latest diagnostics at top.
         return lines.suffix(400).reversed().joined(separator: "\n")
     }
 
@@ -367,6 +612,10 @@ struct MarkdownPreviewView: View {
         let ymd = String(name[start..<end])
         guard ymd.count == 8 else { return nil }
         return ymd
+    }
+
+    private func local(_ zhHans: String, _ en: String) -> String {
+        language == .zhHans ? zhHans : en
     }
 
     private static let ymdParser: DateFormatter = {
