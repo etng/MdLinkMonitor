@@ -3,34 +3,13 @@ import CBMCore
 import MarkdownUI
 import SwiftUI
 
-enum PreviewPanelDestination: CaseIterable {
-    case preview
-    case calendar
-    case settings
-    case updates
-    case about
-
-    var symbolName: String {
-        switch self {
-        case .preview: return "doc.text.image"
-        case .calendar: return "calendar"
-        case .settings: return "slider.horizontal.3"
-        case .updates: return "arrow.triangle.2.circlepath"
-        case .about: return "questionmark.circle"
-        }
-    }
-}
-
-struct MarkdownPreviewView: View {
+struct MainWindowView: View {
     let initialFilePath: String
     @ObservedObject var model: MenuBarViewModel
 
     @State private var files: [URL] = []
     @State private var filesByYMD: [String: URL] = [:]
     @State private var selectedDate = Date()
-
-    @State private var selectedPanel: PreviewPanelDestination
-    @State private var canReturnToCalendar = false
 
     @State private var selectedFilePath: String?
     @State private var content = ""
@@ -41,12 +20,6 @@ struct MarkdownPreviewView: View {
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     private let markdownBottomAnchor = "markdown-bottom-anchor"
     private let sidebarWidth: CGFloat = 72
-
-    init(initialFilePath: String, model: MenuBarViewModel, initialPanel: PreviewPanelDestination = .preview) {
-        self.initialFilePath = initialFilePath
-        self.model = model
-        _selectedPanel = State(initialValue: initialPanel)
-    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -87,6 +60,10 @@ struct MarkdownPreviewView: View {
         model.settings.previewCalendarScale
     }
 
+    private var selectedPanel: MainWindowPanel {
+        model.mainWindowPanel
+    }
+
     private var currentFilePath: String? {
         selectedFilePath
     }
@@ -107,7 +84,7 @@ struct MarkdownPreviewView: View {
 
     private var leftSidebar: some View {
         VStack(spacing: 12) {
-            ForEach(PreviewPanelDestination.allCases, id: \.self) { panel in
+            ForEach(MainWindowPanel.allCases, id: \.self) { panel in
                 navButton(for: panel)
             }
 
@@ -129,7 +106,7 @@ struct MarkdownPreviewView: View {
                 SettingsView(model: model)
             case .updates:
                 updatesPanel
-            case .about:
+            case .help:
                 AboutView(language: language)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(8)
@@ -141,14 +118,20 @@ struct MarkdownPreviewView: View {
     private var previewPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                if canReturnToCalendar {
+                if model.showBackToCalendarInPreview {
                     iconActionButton(
                         systemName: "arrow.uturn.backward",
                         title: model.text(.backToCalendar)
                     ) {
-                        selectedPanel = .calendar
+                        model.mainWindowPanel = .calendar
                     }
                 }
+
+                iconActionButton(
+                    systemName: "scope",
+                    title: model.text(.goToday),
+                    action: goToToday
+                )
 
                 Spacer()
 
@@ -239,7 +222,7 @@ struct MarkdownPreviewView: View {
     }
 
     private var calendarPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             CalendarBoardView(
                 selectedDate: $selectedDate,
                 language: language,
@@ -248,10 +231,21 @@ struct MarkdownPreviewView: View {
             ) { date in
                 selectedDate = date
                 syncSelectedFileForSelectedDate()
-                canReturnToCalendar = true
-                selectedPanel = .preview
+                model.showBackToCalendarInPreview = true
+                model.mainWindowPanel = .preview
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            HStack {
+                Spacer()
+                Button {
+                    goToToday()
+                } label: {
+                    Label(model.text(.goToday), systemImage: "scope")
+                }
+                .buttonStyle(.borderedProminent)
+                Spacer()
+            }
         }
         .padding(18)
     }
@@ -286,14 +280,14 @@ struct MarkdownPreviewView: View {
         .padding(22)
     }
 
-    private func navButton(for panel: PreviewPanelDestination) -> some View {
+    private func navButton(for panel: MainWindowPanel) -> some View {
         let isActive = panel == selectedPanel
 
         return Button {
             if panel == .preview {
-                canReturnToCalendar = false
+                model.showBackToCalendarInPreview = false
             }
-            selectedPanel = panel
+            model.mainWindowPanel = panel
         } label: {
             Image(systemName: panel.symbolName)
                 .font(.system(size: 17, weight: .semibold))
@@ -308,6 +302,16 @@ struct MarkdownPreviewView: View {
         .help(panelTitle(panel))
     }
 
+    private func panelTitle(_ panel: MainWindowPanel) -> String {
+        switch panel {
+        case .preview: return model.text(.previewTitle)
+        case .calendar: return model.text(.calendar)
+        case .settings: return model.text(.settingsTitle)
+        case .updates: return model.text(.checkForUpdates)
+        case .help: return model.text(.about)
+        }
+    }
+
     private func iconActionButton(systemName: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
@@ -318,14 +322,9 @@ struct MarkdownPreviewView: View {
         .help(title)
     }
 
-    private func panelTitle(_ panel: PreviewPanelDestination) -> String {
-        switch panel {
-        case .preview: return model.text(.previewTitle)
-        case .calendar: return model.text(.calendar)
-        case .settings: return model.text(.settingsTitle)
-        case .updates: return model.text(.checkForUpdates)
-        case .about: return model.text(.about)
-        }
+    private func goToToday() {
+        selectedDate = Date()
+        syncSelectedFileForSelectedDate()
     }
 
     private func reloadFilesAndContent() {

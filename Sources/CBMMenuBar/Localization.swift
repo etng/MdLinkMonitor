@@ -47,7 +47,7 @@ enum AppLocalizer {
         switch language {
         case .zhHans:
             switch key {
-            case .appTitle: return "MdMonitor"
+            case .appTitle: return "Markdown Monitor"
             case .enableMonitoring: return "启用监控"
             case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
@@ -62,7 +62,7 @@ enum AppLocalizer {
             case .repositoryDomains: return "仓库域名（每行一个）"
             case .applyDomains: return "应用域名配置"
             case .language: return "语言"
-            case .previewMenu: return "预览"
+            case .previewMenu: return "主窗口"
             case .today: return "今天"
             case .recentFiles: return "最近文件"
             case .noRecentFiles: return "暂无记录"
@@ -88,7 +88,7 @@ enum AppLocalizer {
             }
         case .en:
             switch key {
-            case .appTitle: return "MdMonitor"
+            case .appTitle: return "Markdown Monitor"
             case .enableMonitoring: return "Enable Monitoring"
             case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
@@ -103,7 +103,7 @@ enum AppLocalizer {
             case .repositoryDomains: return "Repository Domains (one per line)"
             case .applyDomains: return "Apply Domains"
             case .language: return "Language"
-            case .previewMenu: return "Preview"
+            case .previewMenu: return "Main Window"
             case .today: return "Today"
             case .recentFiles: return "Recent Files"
             case .noRecentFiles: return "No Files"
