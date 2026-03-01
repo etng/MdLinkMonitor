@@ -6,14 +6,6 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button(model.text(.openSettings)) {
-                runAfterMenuDismiss {
-                    model.openSettings()
-                }
-            }
-
-            Divider()
-
             Text(model.text(.recentFiles))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -24,7 +16,7 @@ struct MenuBarContentView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(model.recentFiles.prefix(7)), id: \.path) { file in
-                    Button(file.lastPathComponent) {
+                    Button(dateLabel(for: file)) {
                         runAfterMenuDismiss {
                             model.openPreview(filePath: file.path(percentEncoded: false))
                         }
@@ -39,18 +31,6 @@ struct MenuBarContentView: View {
             }
 
             Divider()
-
-            Button(model.text(.checkForUpdates)) {
-                runAfterMenuDismiss {
-                    model.checkForUpdates()
-                }
-            }
-
-            Button(model.text(.about)) {
-                runAfterMenuDismiss {
-                    model.openAbout()
-                }
-            }
 
             Text(model.statusText)
                 .font(.caption2)
@@ -69,4 +49,33 @@ struct MenuBarContentView: View {
             action()
         }
     }
+
+    private func dateLabel(for file: URL) -> String {
+        let fileName = file.lastPathComponent
+        guard fileName.hasPrefix("links_"), fileName.hasSuffix(".md") else {
+            return fileName
+        }
+
+        let start = fileName.index(fileName.startIndex, offsetBy: 6)
+        let end = fileName.index(fileName.endIndex, offsetBy: -3)
+        let ymd = String(fileName[start..<end])
+        guard let date = Self.ymdParser.date(from: ymd) else {
+            return fileName
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = model.settings.language == .zhHans
+            ? Locale(identifier: "zh_Hans_CN")
+            : Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private static let ymdParser: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd"
+        return formatter
+    }()
 }
