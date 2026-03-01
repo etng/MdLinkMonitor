@@ -29,6 +29,8 @@ enum L10nKey {
     case reload
     case copyMarkdown
     case copied
+    case backToCalendar
+    case currentVersion
     case historyFiles
     case calendar
     case goToday
@@ -66,12 +68,14 @@ enum AppLocalizer {
             case .noRecentFiles: return "暂无记录"
             case .openToday: return "打开今天文件"
             case .statusIdle: return "空闲"
-            case .about: return "关于"
+            case .about: return "帮助"
             case .quit: return "退出"
             case .previewTitle: return "Markdown 预览"
             case .reload: return "刷新"
             case .copyMarkdown: return "复制 Markdown"
             case .copied: return "已复制"
+            case .backToCalendar: return "返回日历"
+            case .currentVersion: return "当前版本"
             case .historyFiles: return "历史文件"
             case .calendar: return "日历"
             case .goToday: return "回到今天"
@@ -79,8 +83,8 @@ enum AppLocalizer {
             case .noFileForDate: return "所选日期暂无记录"
             case .todayLogs: return "今日日志（自动刷新）"
             case .checkForUpdates: return "检查更新"
-            case .aboutHeadline: return "MdMonitor"
-            case .aboutDescription: return "一个用于从 Markdown 链接中收集 Git 仓库并自动处理的 Swift 菜单栏应用。"
+            case .aboutHeadline: return "帮助"
+            case .aboutDescription: return "使用说明"
             }
         case .en:
             switch key {
@@ -105,12 +109,14 @@ enum AppLocalizer {
             case .noRecentFiles: return "No Files"
             case .openToday: return "Open Today"
             case .statusIdle: return "Idle"
-            case .about: return "About"
+            case .about: return "Help"
             case .quit: return "Quit"
             case .previewTitle: return "Markdown Preview"
             case .reload: return "Reload"
             case .copyMarkdown: return "Copy Markdown"
             case .copied: return "Copied"
+            case .backToCalendar: return "Back to Calendar"
+            case .currentVersion: return "Current Version"
             case .historyFiles: return "History"
             case .calendar: return "Calendar"
             case .goToday: return "Today"
@@ -118,8 +124,8 @@ enum AppLocalizer {
             case .noFileForDate: return "No record for selected date"
             case .todayLogs: return "Today's Logs (Auto Refresh)"
             case .checkForUpdates: return "Check for Updates"
-            case .aboutHeadline: return "MdMonitor"
-            case .aboutDescription: return "Swift menu bar app for collecting and processing Git repositories from markdown links."
+            case .aboutHeadline: return "Help"
+            case .aboutDescription: return "Usage Guide"
             }
         }
     }
