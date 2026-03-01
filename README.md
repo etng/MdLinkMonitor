@@ -70,6 +70,7 @@ make install-local
 If `hdiutil` is unavailable in your environment, `make dmg` falls back to `dist/MdMonitor.zip`.
 `make app` embeds `Sparkle.framework` into `Contents/Frameworks` automatically.
 `make dmg` now includes an `Applications` shortcut in the mounted image, so users can drag `MdMonitor.app` directly for install.
+`make install` now auto-moves a duplicate `~/Applications/MdMonitor.app` to a timestamped backup to avoid Spotlight launching an old copy (`REMOVE_DUPLICATE_COPY=0` to disable).
 
 If you already have an exported app, you can still create dmg manually. Assume `MdMonitor.app` is at `dist/MdMonitor.app`:
 
@@ -138,6 +139,10 @@ hdiutil create \
   - Clone is skipped by design.
 - If menu action beeps but no popup:
   - Update to latest code in this repo; menu actions now execute after menu dismiss.
+- If Spotlight launches an unexpected old MdMonitor version:
+  - Check both `/Applications/MdMonitor.app` and `~/Applications/MdMonitor.app`.
+  - Keep only one active install location (prefer `/Applications`).
+  - Run `make refresh-launch-services APP_PATH=/Applications/MdMonitor.app`.
 
 ## Dev Diagnostics
 

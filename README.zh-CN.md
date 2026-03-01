@@ -60,6 +60,7 @@ make install-local # 安装到 ~/Applications
 若当前环境不支持 `hdiutil`，`make dmg` 会自动回退生成 `dist/MdMonitor.zip`。
 `make app` 会自动把 `Sparkle.framework` 嵌入到 `Contents/Frameworks`。
 `make dmg` 现在会在镜像里包含 `Applications` 快捷方式，用户可直接拖拽安装。
+`make install` 现在会自动把重复的 `~/Applications/MdMonitor.app` 移动到带时间戳的备份，避免 Spotlight 命中旧副本（可用 `REMOVE_DUPLICATE_COPY=0` 关闭）。
 
 如果你已经有导出的 `.app`，也可以手工打包 `.dmg`：
 
@@ -124,6 +125,10 @@ hdiutil create \
   - 会跳过 clone（设计如此）。
 - 若点击菜单项后只听到提示音没有弹窗：
   - 更新到最新版本，当前逻辑已改为菜单关闭后异步触发动作。
+- 若 Spotlight 启动到了旧版本：
+  - 检查 `/Applications/MdMonitor.app` 与 `~/Applications/MdMonitor.app` 是否同时存在。
+  - 建议只保留一个安装位置（优先 `/Applications`）。
+  - 执行 `make refresh-launch-services APP_PATH=/Applications/MdMonitor.app` 刷新注册。
 
 ## 开发诊断
 
