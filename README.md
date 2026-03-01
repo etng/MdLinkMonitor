@@ -68,6 +68,7 @@ make install-local
 ```
 
 If `hdiutil` is unavailable in your environment, `make dmg` falls back to `dist/MdMonitor.zip`.
+`make app` embeds `Sparkle.framework` into `Contents/Frameworks` automatically.
 
 If you already have an exported app, you can still create dmg manually. Assume `MdMonitor.app` is at `dist/MdMonitor.app`:
 
