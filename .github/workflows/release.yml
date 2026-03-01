@@ -10,13 +10,28 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Verify Swift toolchain
+        run: |
+          set -euo pipefail
+          SWIFT_VERSION="$(swift --version | awk '/Swift version/{print $4; exit}')"
+          echo "Swift version: ${SWIFT_VERSION}"
+          if [[ "$(printf '%s\n' "${SWIFT_VERSION}" "6.2" | sort -V | tail -n1)" != "${SWIFT_VERSION}" ]]; then
+            echo "Swift ${SWIFT_VERSION} is lower than required 6.2"
+            exit 1
+          fi
 
       - name: Validate tag format
         env:
@@ -35,9 +50,10 @@ jobs:
         run: |
           set -euo pipefail
           TAG_VERSION="${TAG#v}"
-          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' packaging/Info.plist)"
-          if [[ "$APP_VERSION" != "$TAG_VERSION" ]]; then
-            echo "Tag version ($TAG_VERSION) does not match packaging/Info.plist version ($APP_VERSION)."
+          SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' packaging/Info.plist)"
+          BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' packaging/Info.plist)"
+          if [[ "$SHORT_VERSION" != "$TAG_VERSION" || "$BUILD_VERSION" != "$TAG_VERSION" ]]; then
+            echo "Tag version ($TAG_VERSION) does not match Info.plist versions (short=$SHORT_VERSION build=$BUILD_VERSION)."
             exit 1
           fi
 
@@ -102,6 +118,66 @@ jobs:
           echo "Generated release notes:"
           cat "$NOTES_FILE"
 
+      - name: Generate appcast
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${TAG#v}"
+          APPCAST_FILE="dist/appcast.xml"
+          RELEASE_NOTES_FILE="dist/release-notes.md"
+          PUB_DATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
+
+          if [[ -f "dist/MdMonitor.dmg" ]]; then
+            ASSET_NAME="MdMonitor.dmg"
+            MIME_TYPE="application/x-apple-diskimage"
+            ASSET_SIZE="$(stat -f%z dist/MdMonitor.dmg)"
+          elif [[ -f "dist/MdMonitor.zip" ]]; then
+            ASSET_NAME="MdMonitor.zip"
+            MIME_TYPE="application/zip"
+            ASSET_SIZE="$(stat -f%z dist/MdMonitor.zip)"
+          else
+            echo "No release archive found in dist/"
+            exit 1
+          fi
+
+          ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
+          FEED_LINK="https://github.com/${REPO}/releases/latest/download/appcast.xml"
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
+
+          DESCRIPTION_TEXT="$(sed 's/&/\\&amp;/g; s/</\\&lt;/g; s/>/\\&gt;/g' "${RELEASE_NOTES_FILE}")"
+
+          cat > "${APPCAST_FILE}" <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0"
+              xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+              xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>MdMonitor Updates</title>
+              <link>${FEED_LINK}</link>
+              <description>MdMonitor release feed</description>
+              <language>en</language>
+              <item>
+                <title>${TAG}</title>
+                <link>${RELEASE_URL}</link>
+                <description>${DESCRIPTION_TEXT}</description>
+                <pubDate>${PUB_DATE}</pubDate>
+                <enclosure
+                  url="${ASSET_URL}"
+                  length="${ASSET_SIZE}"
+                  type="${MIME_TYPE}"
+                  sparkle:version="${VERSION}"
+                  sparkle:shortVersionString="${VERSION}" />
+              </item>
+            </channel>
+          </rss>
+          XML
+
+          echo "Generated appcast:"
+          cat "${APPCAST_FILE}"
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
@@ -110,4 +186,5 @@ jobs:
           files: |
             dist/MdMonitor.dmg
             dist/MdMonitor.zip
+            dist/appcast.xml
           fail_on_unmatched_files: false

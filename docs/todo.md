@@ -94,6 +94,9 @@
 - [x] Release 注释按“当前 tag 与上一个 tag 之间”的提交汇总生成
 - [x] 新增发布脚本：自动更新 Info.plist 版本并执行 tag/push
 - [x] Makefile 增加发布入口，调用发布脚本
+- [x] 修复 Release workflow 的 Swift/Xcode 版本选择，兼容 swift-tools-version 6.2
+- [x] 为 Sparkle 增加 appcast.xml 生成与 release 上传
+- [x] 配置应用 Feed URL，并统一版本字段用于 Sparkle 比较
 
 ## 远期待办
 

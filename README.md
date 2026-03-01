@@ -91,7 +91,9 @@ hdiutil create \
 
 ### Release notes
 
-- For Sparkle updates, use a signed app build and valid appcast feed.
+- Sparkle feed URL is `https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml`.
+- Tag push `v<semver>` triggers `.github/workflows/release.yml` to build artifacts and upload `appcast.xml` into the release.
+- Use `make release-tag VERSION=x.y.z` to sync plist version, commit, tag, and push.
 - For public distribution outside personal machines, add code-signing + notarization in your release pipeline.
 
 ## CLI
