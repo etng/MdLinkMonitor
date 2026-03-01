@@ -37,6 +37,7 @@ final class MenuBarViewModel: ObservableObject {
         let loaded = settingsStore.load()
         self.settings = loaded
         self.statusText = AppLocalizer.text(.statusIdle, language: loaded.language)
+        AppActivationPolicyManager.apply(showDockIcon: loaded.showDockIcon)
 
         let memoryLogger = InMemoryLogger()
         let fileLogger = DailyFileLogger(baseDirectoryPath: loaded.outputDirectoryPath)
@@ -123,6 +124,18 @@ final class MenuBarViewModel: ObservableObject {
             logger.log(.error, message)
             notifyIfEnabled(message)
         }
+    }
+
+    func updateShowDockIcon(_ enabled: Bool) {
+        logEvent("UI toggle showDockIcon -> \(enabled)")
+        updateSettings { state in
+            state.showDockIcon = enabled
+        }
+
+        AppActivationPolicyManager.apply(showDockIcon: enabled)
+        let message = enabled ? local("Dock 图标已显示", "Dock icon enabled") : local("Dock 图标已隐藏", "Dock icon hidden")
+        setStatus(message)
+        logger.log(.info, message)
     }
 
     func updateLanguage(_ language: AppLanguage) {

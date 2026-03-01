@@ -33,6 +33,14 @@ struct SettingsView: View {
             )
 
             settingToggle(
+                model.text(.showDockIcon),
+                isOn: Binding(
+                    get: { model.settings.showDockIcon },
+                    set: { model.updateShowDockIcon($0) }
+                )
+            )
+
+            settingToggle(
                 model.text(.launchAtLogin),
                 isOn: Binding(
                     get: { model.settings.launchAtLogin },

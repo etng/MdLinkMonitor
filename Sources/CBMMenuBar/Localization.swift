@@ -6,6 +6,7 @@ enum L10nKey {
     case enableMonitoring
     case enableNotifications
     case allowMultipleLinks
+    case showDockIcon
     case launchAtLogin
     case outputDirectory
     case chooseDirectory
@@ -41,6 +42,7 @@ enum AppLocalizer {
             case .enableMonitoring: return "启用监控"
             case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
+            case .showDockIcon: return "显示 Dock 图标"
             case .launchAtLogin: return "开机启动"
             case .outputDirectory: return "输出目录"
             case .chooseDirectory: return "选择目录"
@@ -64,7 +66,7 @@ enum AppLocalizer {
             case .todayLogs: return "今日日志（自动刷新）"
             case .checkForUpdates: return "检查更新"
             case .aboutHeadline: return "剪贴板仓库监视"
-            case .aboutDescription: return "一个用于从 Markdown 链接中收集 GitHub 仓库的 Swift 菜单栏应用。"
+            case .aboutDescription: return "一个用于从 Markdown 链接中收集 Git 仓库并自动处理的 Swift 菜单栏应用。"
             }
         case .en:
             switch key {
@@ -72,6 +74,7 @@ enum AppLocalizer {
             case .enableMonitoring: return "Enable Monitoring"
             case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
+            case .showDockIcon: return "Show Dock Icon"
             case .launchAtLogin: return "Launch at Login"
             case .outputDirectory: return "Output Directory"
             case .chooseDirectory: return "Choose Directory"
@@ -95,7 +98,7 @@ enum AppLocalizer {
             case .todayLogs: return "Today's Logs (Auto Refresh)"
             case .checkForUpdates: return "Check for Updates"
             case .aboutHeadline: return "Clipboard Repo Monitor"
-            case .aboutDescription: return "Swift menu bar app for collecting GitHub repos from markdown links."
+            case .aboutDescription: return "Swift menu bar app for collecting and processing Git repositories from markdown links."
             }
         }
     }
