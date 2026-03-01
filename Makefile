@@ -11,7 +11,7 @@ ICONSET_DIR := $(BUILD_DIR)/$(APP_NAME).iconset
 ICNS_PATH := $(BUILD_DIR)/AppIcon.icns
 INSTALL_DIR ?= /Applications
 
-.PHONY: help test run release icon app dmg install install-local clean
+.PHONY: help test run release icon app dmg install install-local release-tag clean
 
 help:
 	@echo "make test          # run unit tests"
@@ -22,6 +22,7 @@ help:
 	@echo "make dmg           # create dist/MdMonitor.dmg"
 	@echo "make install       # install app to /Applications (override INSTALL_DIR=...)"
 	@echo "make install-local # install app to ~/Applications"
+	@echo "make release-tag VERSION=x.y.z # bump plist version, commit, tag and push"
 	@echo "make clean         # remove build artifacts"
 
 test:
@@ -93,6 +94,13 @@ install-local: app
 	mkdir -p "$$HOME/Applications"
 	ditto $(APP_DIR) "$$HOME/Applications/$(APP_NAME).app"
 	@echo "Installed to $$HOME/Applications/$(APP_NAME).app"
+
+release-tag:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Usage: make release-tag VERSION=x.y.z"; \
+		exit 1; \
+	fi
+	@bash scripts/release_tag.sh "$(VERSION)"
 
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
