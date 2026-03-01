@@ -70,14 +70,6 @@ final class MenuBarViewModel: ObservableObject {
         settings.repositoryDomains.joined(separator: "\n")
     }
 
-    var todayMenuDateText: String {
-        let formatter = DateFormatter()
-        formatter.locale = settings.language == .zhHans ? Locale(identifier: "zh_Hans_CN") : Locale(identifier: "en_US_POSIX")
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: Date())
-    }
-
     func updateMonitoringEnabled(_ enabled: Bool) {
         logEvent("UI toggle monitoring -> \(enabled)")
         updateSettings { state in
@@ -248,7 +240,7 @@ final class MenuBarViewModel: ObservableObject {
         logEvent("UI action openAbout")
         openPreview(filePath: openTodayFilePath(), panel: .about)
 
-        let message = local("已打开关于面板", "About panel opened")
+        let message = local("已打开帮助面板", "Help panel opened")
         setStatus(message)
         logger.log(.info, message)
     }

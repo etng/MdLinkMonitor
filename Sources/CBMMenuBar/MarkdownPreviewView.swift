@@ -16,7 +16,7 @@ enum PreviewPanelDestination: CaseIterable {
         case .calendar: return "calendar"
         case .settings: return "slider.horizontal.3"
         case .updates: return "arrow.triangle.2.circlepath"
-        case .about: return "info.circle"
+        case .about: return "questionmark.circle"
         }
     }
 }
@@ -30,10 +30,10 @@ struct MarkdownPreviewView: View {
     @State private var selectedDate = Date()
 
     @State private var selectedPanel: PreviewPanelDestination
+    @State private var canReturnToCalendar = false
 
     @State private var selectedFilePath: String?
     @State private var content = ""
-    @State private var copyFeedbackVisible = false
 
     @State private var showLogPanel = false
     @State private var todayLogContent = ""
@@ -141,8 +141,14 @@ struct MarkdownPreviewView: View {
     private var previewPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Label(model.text(.previewTitle), systemImage: "doc.richtext")
-                    .font(.headline)
+                if canReturnToCalendar {
+                    iconActionButton(
+                        systemName: "arrow.uturn.backward",
+                        title: model.text(.backToCalendar)
+                    ) {
+                        selectedPanel = .calendar
+                    }
+                }
 
                 Spacer()
 
@@ -159,23 +165,6 @@ struct MarkdownPreviewView: View {
                 )
                 .disabled(selectedFilePath == nil)
             }
-
-            Text(currentFilePath ?? model.text(.noFileForDate))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            if copyFeedbackVisible {
-                Text(model.text(.copied))
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-            }
-
-            Text(model.statusText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            Divider()
 
             ScrollViewReader { proxy in
                 ScrollView {
@@ -250,13 +239,7 @@ struct MarkdownPreviewView: View {
     }
 
     private var calendarPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label(model.text(.calendar), systemImage: "calendar")
-                    .font(.title3.weight(.semibold))
-                Spacer()
-            }
-
+        VStack(alignment: .leading, spacing: 8) {
             CalendarBoardView(
                 selectedDate: $selectedDate,
                 language: language,
@@ -265,6 +248,7 @@ struct MarkdownPreviewView: View {
             ) { date in
                 selectedDate = date
                 syncSelectedFileForSelectedDate()
+                canReturnToCalendar = true
                 selectedPanel = .preview
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -278,8 +262,8 @@ struct MarkdownPreviewView: View {
                 .font(.title3.weight(.semibold))
 
             Text(local(
-                "通过 Sparkle 2 检查可用版本。若检查失败会静默处理并写入当日日志。",
-                "Check for updates via Sparkle 2. Failures are handled silently and written to the daily log."
+                "通过 Sparkle 2 检查可用版本。版本号遵循 SemVer，若检查失败会静默处理并写入当日日志。",
+                "Check for updates via Sparkle 2. Versions follow SemVer. Failures are handled silently and written to the daily log."
             ))
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -293,8 +277,8 @@ struct MarkdownPreviewView: View {
 
             Divider()
 
-            Text(model.statusText)
-                .font(.callout)
+            Text("\(model.text(.currentVersion)): \(AppVersion.displayVersion)")
+                .font(.headline)
                 .foregroundStyle(.secondary)
 
             Spacer()
@@ -306,6 +290,9 @@ struct MarkdownPreviewView: View {
         let isActive = panel == selectedPanel
 
         return Button {
+            if panel == .preview {
+                canReturnToCalendar = false
+            }
             selectedPanel = panel
         } label: {
             Image(systemName: panel.symbolName)
@@ -441,10 +428,6 @@ struct MarkdownPreviewView: View {
     private func copyMarkdownRaw() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
-        copyFeedbackVisible = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            copyFeedbackVisible = false
-        }
     }
 
     private func makeReverseChronologicalLog(_ raw: String) -> String {

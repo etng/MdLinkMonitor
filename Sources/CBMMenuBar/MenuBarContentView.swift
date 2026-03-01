@@ -7,56 +7,54 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Menu(model.text(.previewMenu)) {
-                Button(model.text(.today)) {
-                    runAfterMenuDismiss {
-                        model.openTodayPreview()
-                    }
-                }
+            Text(model.text(.previewMenu))
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                Button(model.text(.calendar)) {
-                    runAfterMenuDismiss {
-                        model.openCalendar()
-                    }
+            Button(model.text(.today)) {
+                runAfterMenuDismiss {
+                    model.openTodayPreview()
                 }
+            }
 
-                if !recentFilesWithoutToday.isEmpty {
-                    Divider()
-                    ForEach(Array(recentFilesWithoutToday.prefix(7)), id: \.path) { file in
-                        Button(dateLabel(for: file)) {
-                            runAfterMenuDismiss {
-                                model.openPreview(filePath: file.path(percentEncoded: false), panel: .preview)
-                            }
-                        }
-                    }
+            Button(model.text(.calendar)) {
+                runAfterMenuDismiss {
+                    model.openCalendar()
                 }
+            }
 
+            if !recentFilesWithoutToday.isEmpty {
                 Divider()
-
-                Button(model.text(.settingsTitle)) {
-                    runAfterMenuDismiss {
-                        model.openSettings()
-                    }
-                }
-
-                Button(model.text(.checkForUpdates)) {
-                    runAfterMenuDismiss {
-                        model.openUpdatesPanel()
-                    }
-                }
-
-                Button(model.text(.about)) {
-                    runAfterMenuDismiss {
-                        model.openAbout()
+                ForEach(Array(recentFilesWithoutToday.prefix(7)), id: \.path) { file in
+                    Button(dateLabel(for: file)) {
+                        runAfterMenuDismiss {
+                            model.openPreview(filePath: file.path(percentEncoded: false), panel: .preview)
+                        }
                     }
                 }
             }
 
             Divider()
 
-            Text(model.statusText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            Button(model.text(.settingsTitle)) {
+                runAfterMenuDismiss {
+                    model.openSettings()
+                }
+            }
+
+            Button(model.text(.checkForUpdates)) {
+                runAfterMenuDismiss {
+                    model.openUpdatesPanel()
+                }
+            }
+
+            Button(model.text(.about)) {
+                runAfterMenuDismiss {
+                    model.openAbout()
+                }
+            }
+
+            Divider()
 
             Button(model.text(.quit)) {
                 NSApplication.shared.terminate(nil)

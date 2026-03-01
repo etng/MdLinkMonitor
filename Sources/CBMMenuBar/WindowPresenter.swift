@@ -11,8 +11,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         model: MenuBarViewModel,
         initialPanel: PreviewPanelDestination = .preview
     ) {
-        let language = model.settings.language
-        let title = language == .zhHans ? "Markdown 预览" : "Markdown Preview"
+        let title = "Markdown Monitor"
         let root = AnyView(
             MarkdownPreviewView(
                 initialFilePath: initialFilePath,
