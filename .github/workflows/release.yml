@@ -118,6 +118,71 @@ jobs:
           echo "Generated release notes:"
           cat "$NOTES_FILE"
 
+      - name: Validate Sparkle signing configuration
+        env:
+          SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_PUBLIC_KEY}" ]]; then
+            echo "Missing secret: SPARKLE_PUBLIC_KEY"
+            exit 1
+          fi
+          PLIST_PUBLIC_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' packaging/Info.plist)"
+          if [[ "${PLIST_PUBLIC_KEY}" != "${SPARKLE_PUBLIC_KEY}" ]]; then
+            echo "Info.plist SUPublicEDKey does not match GitHub secret SPARKLE_PUBLIC_KEY"
+            exit 1
+          fi
+
+      - name: Build Sparkle sign_update tool
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project .build/checkouts/Sparkle/Sparkle.xcodeproj \
+            -scheme sign_update \
+            -configuration Release \
+            -derivedDataPath build/sparkle-tools \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            > /tmp/sign_update_build.log
+          test -x build/sparkle-tools/Build/Products/Release/sign_update
+
+      - name: Sign release archive
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_PRIVATE_KEY}" ]]; then
+            echo "Missing secret: SPARKLE_PRIVATE_KEY"
+            exit 1
+          fi
+
+          if [[ -f "dist/MdMonitor.dmg" ]]; then
+            ASSET_NAME="MdMonitor.dmg"
+            MIME_TYPE="application/x-apple-diskimage"
+            ASSET_PATH="dist/MdMonitor.dmg"
+          elif [[ -f "dist/MdMonitor.zip" ]]; then
+            ASSET_NAME="MdMonitor.zip"
+            MIME_TYPE="application/zip"
+            ASSET_PATH="dist/MdMonitor.zip"
+          else
+            echo "No release archive found in dist/"
+            exit 1
+          fi
+
+          ASSET_SIZE="$(stat -f%z "${ASSET_PATH}")"
+          SIGN_UPDATE_BIN="build/sparkle-tools/Build/Products/Release/sign_update"
+
+          ED_SIGNATURE="$(printf '%s' "${SPARKLE_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" --ed-key-file - -p "${ASSET_PATH}")"
+          printf '%s' "${SPARKLE_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" --ed-key-file - --verify "${ASSET_PATH}" "${ED_SIGNATURE}"
+
+          {
+            echo "ASSET_NAME=${ASSET_NAME}"
+            echo "ASSET_PATH=${ASSET_PATH}"
+            echo "ASSET_SIZE=${ASSET_SIZE}"
+            echo "MIME_TYPE=${MIME_TYPE}"
+            echo "ED_SIGNATURE=${ED_SIGNATURE}"
+          } >> "$GITHUB_ENV"
+
       - name: Generate appcast
         env:
           TAG: ${{ github.ref_name }}
@@ -129,19 +194,6 @@ jobs:
           APPCAST_FILE="dist/appcast.xml"
           RELEASE_NOTES_FILE="dist/release-notes.md"
           PUB_DATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
-
-          if [[ -f "dist/MdMonitor.dmg" ]]; then
-            ASSET_NAME="MdMonitor.dmg"
-            MIME_TYPE="application/x-apple-diskimage"
-            ASSET_SIZE="$(stat -f%z dist/MdMonitor.dmg)"
-          elif [[ -f "dist/MdMonitor.zip" ]]; then
-            ASSET_NAME="MdMonitor.zip"
-            MIME_TYPE="application/zip"
-            ASSET_SIZE="$(stat -f%z dist/MdMonitor.zip)"
-          else
-            echo "No release archive found in dist/"
-            exit 1
-          fi
 
           ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
           FEED_LINK="https://github.com/${REPO}/releases/latest/download/appcast.xml"
@@ -168,6 +220,7 @@ jobs:
                   url="${ASSET_URL}"
                   length="${ASSET_SIZE}"
                   type="${MIME_TYPE}"
+                  sparkle:edSignature="${ED_SIGNATURE}"
                   sparkle:version="${VERSION}"
                   sparkle:shortVersionString="${VERSION}" />
               </item>
