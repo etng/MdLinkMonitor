@@ -1,13 +1,16 @@
+import CBMCore
 import SwiftUI
 
 struct AboutView: View {
+    let language: AppLanguage
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CBM")
                 .font(.title2)
                 .bold()
-            Text("Clipboard Repo Monitor")
-            Text("Swift Menu Bar app for collecting GitHub repos from markdown links.")
+            Text(AppLocalizer.text(.aboutHeadline, language: language))
+            Text(AppLocalizer.text(.aboutDescription, language: language))
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }

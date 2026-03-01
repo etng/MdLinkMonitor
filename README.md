@@ -1,5 +1,7 @@
 # Clipboard Repo Monitor (CBM)
 
+Chinese version: [README.zh-CN.md](./README.zh-CN.md)
+
 CBM is a macOS menu bar app written in Swift.
 
 When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. If the link is a GitHub repository URL (`https://github.com/owner/repo`), CBM:

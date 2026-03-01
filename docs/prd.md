@@ -1,5 +1,7 @@
 # CBM Product Requirements Document
 
+中文版: [prd.zh-CN.md](./prd.zh-CN.md)
+
 ## 1. Product Goal
 
 Build a macOS menu bar utility to collect GitHub repository links copied as Markdown links from clipboard, persist them into daily markdown notes, and trigger clone command automatically when enabled.
