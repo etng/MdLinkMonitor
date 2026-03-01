@@ -72,9 +72,10 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
   - Launch at Login
   - Output Directory
   - Language (中文 / English)
-  - Recent Files (desc by day)
+  - Recent Files (direct list of latest 7 days)
   - About
 - Clicking a recent file opens markdown preview window.
+- Preview window has left sidebar for historical file browsing and right panel markdown rendering.
 
 ### 4.8 CLI
 
@@ -96,6 +97,7 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 - Write operational logs to daily file in same output directory:
   - filename format: `logs_yyyyMMdd.log`
   - include timestamp and level for each line
+  - include explicit markdown append logs
 
 ## 5. Non-Functional Requirements
 
@@ -118,6 +120,7 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 4. With multi-link mode disabled, clipboard containing multiple links is ignored.
 5. With multi-link mode enabled, all valid repos in clipboard are processed with daily de-dup.
 6. CLI can output today's file path and content.
-7. Recent files list is descending by date and preview renders markdown.
-8. Language can switch between Chinese and English.
-9. Sparkle updater can be initialized from app menu and check updates.
+7. Recent files are shown directly for latest 7 days and preview renders markdown.
+8. Preview window supports left sidebar history browsing and click-to-preview.
+9. Language can switch between Chinese and English.
+10. Sparkle updater can be initialized from app menu and check updates.

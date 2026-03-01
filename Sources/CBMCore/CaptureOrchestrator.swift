@@ -51,6 +51,8 @@ public final class ClipboardCaptureOrchestrator {
                 let appended = try store.appendIfNeeded(label: capture.label, repository: capture.repository, date: date)
                 if appended {
                     result.appendedCount += 1
+                    let filePath = store.fileURL(for: date).path(percentEncoded: false)
+                    logger?.log(.info, "Appended markdown entry: \(filePath) [\(capture.repository.canonicalURL)]")
                     let cloneResult = cloneExecutor.clone(repository: capture.repository)
                     if cloneResult.isSuccess {
                         result.clonedCount += 1

@@ -24,6 +24,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0"),
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     ],
     targets: [
         .target(
@@ -38,6 +39,7 @@ let package = Package(
             dependencies: [
                 "CBMCore",
                 .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             ]
         ),
         .testTarget(
