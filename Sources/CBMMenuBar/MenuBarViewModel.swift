@@ -174,11 +174,17 @@ final class MenuBarViewModel: ObservableObject {
 
     func openPreview(filePath: String) {
         logEvent("UI action openPreview path=\(filePath)")
-        windowPresenter.showPreview(filePath: filePath, language: settings.language)
+        windowPresenter.showPreview(
+            initialFilePath: filePath,
+            outputDirectoryPath: settings.outputDirectoryPath,
+            language: settings.language
+        )
 
         let message = local("已打开预览窗口", "Preview window opened")
+        let withContext = message + ": \(filePath)"
         setStatus(message)
-        logger.log(.info, message + ": \(filePath)")
+        logger.log(.info, withContext)
+        logEvent("Preview context outputDirectory=\(settings.outputDirectoryPath)")
     }
 
     func openAbout() {
@@ -243,6 +249,10 @@ final class MenuBarViewModel: ObservableObject {
 
         setStatus(summary)
         logger.log(.info, summary)
+        if result.appendedCount > 0 {
+            let writeMessage = local("已写入 markdown", "Markdown updated") + ": \(store.todayFileURL().path(percentEncoded: false))"
+            logger.log(.info, writeMessage)
+        }
         reloadRecentFiles()
 
         if !result.errors.isEmpty {

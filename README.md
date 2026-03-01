@@ -18,7 +18,8 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Daily log output under same directory (`logs_yyyyMMdd.log`).
 - Daily de-duplication for both markdown append and clone.
 - Optional multi-link processing for clipboard text containing multiple markdown links.
-- Recent files list (sorted by date desc) and markdown preview window.
+- Recent 7-day files shown directly in menu.
+- Preview window with left-side history file browser.
 - CLI command to get today's markdown path/content.
 - Sparkle 2 based in-app update channel (non-App Store distribution).
 
@@ -66,6 +67,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
   - Ensure `Enable Monitoring` is ON in menu bar app.
   - Copy exactly one markdown link unless `Allow Multiple Links` is ON.
   - Check daily log file: `~/Documents/cbm/logs_yyyyMMdd.log` (or your configured output directory).
+  - On successful append, logs include `Appended markdown entry: ...`.
   - In debug builds, UI event traces are written with `[event]` prefix.
 - If menu action beeps but no popup:
   - Update to latest code in this repo; menu actions now execute after menu dismiss.

@@ -62,15 +62,21 @@ struct MenuBarContentView: View {
                 }
             }
 
-            Menu(model.text(.recentFiles)) {
-                if model.recentFiles.isEmpty {
-                    Text(model.text(.noRecentFiles))
-                } else {
-                    ForEach(model.recentFiles, id: \.path) { file in
-                        Button(file.lastPathComponent) {
-                            runAfterMenuDismiss {
-                                model.openPreview(filePath: file.path(percentEncoded: false))
-                            }
+            Divider()
+
+            Text(model.text(.recentFiles))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if model.recentFiles.isEmpty {
+                Text(model.text(.noRecentFiles))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(model.recentFiles.prefix(7)), id: \.path) { file in
+                    Button(file.lastPathComponent) {
+                        runAfterMenuDismiss {
+                            model.openPreview(filePath: file.path(percentEncoded: false))
                         }
                     }
                 }
