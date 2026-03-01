@@ -27,19 +27,14 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
 
     func showPreview(
         initialFilePath: String,
-        outputDirectoryPath: String,
-        language: AppLanguage,
-        markdownFontSize: Double,
-        calendarScale: Double
+        model: MenuBarViewModel
     ) {
+        let language = model.settings.language
         let title = language == .zhHans ? "Markdown 预览" : "Markdown Preview"
         let root = AnyView(
             MarkdownPreviewView(
                 initialFilePath: initialFilePath,
-                outputDirectoryPath: outputDirectoryPath,
-                language: language,
-                markdownFontSize: markdownFontSize,
-                calendarScale: calendarScale
+                model: model
             )
         )
 

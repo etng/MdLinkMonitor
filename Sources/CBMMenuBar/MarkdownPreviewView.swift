@@ -5,10 +5,7 @@ import SwiftUI
 
 struct MarkdownPreviewView: View {
     let initialFilePath: String
-    let outputDirectoryPath: String
-    let language: AppLanguage
-    let markdownFontSize: Double
-    let calendarScale: Double
+    @ObservedObject var model: MenuBarViewModel
 
     @State private var files: [URL] = []
     @State private var filesByYMD: [String: URL] = [:]
@@ -62,8 +59,9 @@ struct MarkdownPreviewView: View {
                 Spacer()
             }
             .padding(12)
-            .frame(minWidth: 260, idealWidth: 280, maxWidth: 320, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .navigationTitle(sidebarTitle)
+            .navigationSplitViewColumnWidth(min: sidebarWidth, ideal: sidebarWidth + 16, max: sidebarWidth + 80)
         } detail: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
@@ -150,15 +148,39 @@ struct MarkdownPreviewView: View {
             }
             .padding(16)
         }
-        .frame(minWidth: 920, minHeight: 620)
+        .frame(minWidth: 960, minHeight: 640)
         .onAppear(perform: reloadFilesAndContent)
         .onChange(of: selectedFilePath) { _ in
             loadSelectedContent()
             loadTodayLog()
         }
+        .onChange(of: model.settings.outputDirectoryPath) { _ in
+            reloadFilesAndContent()
+        }
         .onReceive(refreshTimer) { _ in
             refreshLivePanels()
         }
+    }
+
+    private var language: AppLanguage {
+        model.settings.language
+    }
+
+    private var outputDirectoryPath: String {
+        model.settings.outputDirectoryPath
+    }
+
+    private var markdownFontSize: Double {
+        model.settings.previewMarkdownFontSize
+    }
+
+    private var calendarScale: Double {
+        model.settings.previewCalendarScale
+    }
+
+    private var sidebarWidth: CGFloat {
+        let base = 250.0 + (calendarScale - 1.0) * 220.0
+        return CGFloat(max(300.0, min(460.0, base)))
     }
 
     private var sidebarTitle: String {
