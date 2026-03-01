@@ -15,6 +15,7 @@ func settingsStoreRoundTrip() {
         monitoringEnabled: true,
         notificationsEnabled: true,
         allowMultipleLinks: true,
+        showDockIcon: false,
         launchAtLogin: true,
         outputDirectoryPath: "~/Documents/cbm-custom",
         repositoryDomains: ["github.com", "gitlab.com", "self-host.example.com"],

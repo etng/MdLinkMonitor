@@ -14,6 +14,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 
 - Menu bar app with enable/disable monitoring switch.
 - Optional system notifications with in-app toggle.
+- Optional Dock icon visibility toggle (enabled by default).
 - Optional launch at login.
 - Chinese by default with English localization support and runtime language switch.
 - Daily file output under configurable directory (default: `~/Documents/cbm`).
@@ -44,6 +45,42 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Test: `swift test`
 - Run CLI: `swift run cbm help`
 - Run menu bar app: `swift run CBMMenuBar`
+
+## Packaging & Distribution
+
+### Build a `.app` bundle (recommended with Xcode)
+
+1. Open `Package.swift` in Xcode.
+2. Select product `CBMMenuBar` and target `My Mac`.
+3. Use `Product -> Archive`.
+4. In Organizer, choose `Distribute App -> Copy App` (or export signed build).
+5. You will get `CBMMenuBar.app` for local install/testing.
+
+### Build a `.dmg` from an existing `.app`
+
+Assume `CBMMenuBar.app` is already exported to `dist/CBMMenuBar.app`:
+
+```bash
+mkdir -p dist/dmg
+cp -R dist/CBMMenuBar.app dist/dmg/
+hdiutil create \
+  -volname "CBMMenuBar" \
+  -srcfolder dist/dmg \
+  -ov \
+  -format UDZO \
+  dist/CBMMenuBar.dmg
+```
+
+### User installation
+
+1. Open `CBMMenuBar.dmg`.
+2. Drag `CBMMenuBar.app` into `Applications`.
+3. Launch from `Applications` (first launch may require Gatekeeper confirmation).
+
+### Release notes
+
+- For Sparkle updates, use a signed app build and valid appcast feed.
+- For public distribution outside personal machines, add code-signing + notarization in your release pipeline.
 
 ## CLI
 

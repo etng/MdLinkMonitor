@@ -16,6 +16,7 @@ public struct AppSettings: Equatable, Sendable {
     public var monitoringEnabled: Bool
     public var notificationsEnabled: Bool
     public var allowMultipleLinks: Bool
+    public var showDockIcon: Bool
     public var launchAtLogin: Bool
     public var outputDirectoryPath: String
     public var repositoryDomains: [String]
@@ -25,6 +26,7 @@ public struct AppSettings: Equatable, Sendable {
         monitoringEnabled: Bool = false,
         notificationsEnabled: Bool = true,
         allowMultipleLinks: Bool = false,
+        showDockIcon: Bool = true,
         launchAtLogin: Bool = false,
         outputDirectoryPath: String = DailyMarkdownStore.defaultDirectoryPath,
         repositoryDomains: [String] = ["github.com", "gitlab.com"],
@@ -33,6 +35,7 @@ public struct AppSettings: Equatable, Sendable {
         self.monitoringEnabled = monitoringEnabled
         self.notificationsEnabled = notificationsEnabled
         self.allowMultipleLinks = allowMultipleLinks
+        self.showDockIcon = showDockIcon
         self.launchAtLogin = launchAtLogin
         self.outputDirectoryPath = outputDirectoryPath
         self.repositoryDomains = Self.normalizeDomains(repositoryDomains)
@@ -65,6 +68,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let monitoringEnabled = "cbm.monitoringEnabled"
         static let notificationsEnabled = "cbm.notificationsEnabled"
         static let allowMultipleLinks = "cbm.allowMultipleLinks"
+        static let showDockIcon = "cbm.showDockIcon"
         static let launchAtLogin = "cbm.launchAtLogin"
         static let outputDirectoryPath = "cbm.outputDirectoryPath"
         static let repositoryDomains = "cbm.repositoryDomains"
@@ -86,6 +90,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
             monitoringEnabled: defaults.object(forKey: Keys.monitoringEnabled) as? Bool ?? false,
             notificationsEnabled: defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true,
             allowMultipleLinks: defaults.object(forKey: Keys.allowMultipleLinks) as? Bool ?? false,
+            showDockIcon: defaults.object(forKey: Keys.showDockIcon) as? Bool ?? true,
             launchAtLogin: defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false,
             outputDirectoryPath: defaults.string(forKey: Keys.outputDirectoryPath) ?? DailyMarkdownStore.defaultDirectoryPath,
             repositoryDomains: AppSettings.parseDomains(from: domainsRaw),
@@ -97,6 +102,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.monitoringEnabled, forKey: Keys.monitoringEnabled)
         defaults.set(settings.notificationsEnabled, forKey: Keys.notificationsEnabled)
         defaults.set(settings.allowMultipleLinks, forKey: Keys.allowMultipleLinks)
+        defaults.set(settings.showDockIcon, forKey: Keys.showDockIcon)
         defaults.set(settings.launchAtLogin, forKey: Keys.launchAtLogin)
         defaults.set(settings.outputDirectoryPath, forKey: Keys.outputDirectoryPath)
         defaults.set(settings.repositoryDomains.joined(separator: ","), forKey: Keys.repositoryDomains)
