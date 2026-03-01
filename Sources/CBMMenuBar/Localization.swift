@@ -18,7 +18,13 @@ enum L10nKey {
     case quit
     case previewTitle
     case reload
+    case copyMarkdown
+    case copied
+    case historyFiles
+    case emptyContent
     case checkForUpdates
+    case aboutHeadline
+    case aboutDescription
 }
 
 enum AppLocalizer {
@@ -42,7 +48,13 @@ enum AppLocalizer {
             case .quit: return "退出"
             case .previewTitle: return "Markdown 预览"
             case .reload: return "刷新"
+            case .copyMarkdown: return "复制 Markdown"
+            case .copied: return "已复制"
+            case .historyFiles: return "历史文件"
+            case .emptyContent: return "该文件暂无内容"
             case .checkForUpdates: return "检查更新"
+            case .aboutHeadline: return "剪贴板仓库监视"
+            case .aboutDescription: return "一个用于从 Markdown 链接中收集 GitHub 仓库的 Swift 菜单栏应用。"
             }
         case .en:
             switch key {
@@ -62,7 +74,13 @@ enum AppLocalizer {
             case .quit: return "Quit"
             case .previewTitle: return "Markdown Preview"
             case .reload: return "Reload"
+            case .copyMarkdown: return "Copy Markdown"
+            case .copied: return "Copied"
+            case .historyFiles: return "History"
+            case .emptyContent: return "No content in this file"
             case .checkForUpdates: return "Check for Updates"
+            case .aboutHeadline: return "Clipboard Repo Monitor"
+            case .aboutDescription: return "Swift menu bar app for collecting GitHub repos from markdown links."
             }
         }
     }

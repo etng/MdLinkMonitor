@@ -1,5 +1,6 @@
 import CBMCore
 import MarkdownUI
+import AppKit
 import SwiftUI
 
 struct MarkdownPreviewView: View {
@@ -10,6 +11,7 @@ struct MarkdownPreviewView: View {
     @State private var files: [URL] = []
     @State private var selectedFilePath: String?
     @State private var content = ""
+    @State private var copyFeedbackVisible = false
 
     var body: some View {
         NavigationSplitView {
@@ -28,16 +30,24 @@ struct MarkdownPreviewView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Spacer()
+                    Button(AppLocalizer.text(.copyMarkdown, language: language)) {
+                        copyMarkdownRaw()
+                    }
                     Button(AppLocalizer.text(.reload, language: language)) {
                         reloadFilesAndContent()
                     }
+                }
+                if copyFeedbackVisible {
+                    Text(AppLocalizer.text(.copied, language: language))
+                        .font(.caption2)
+                        .foregroundStyle(.green)
                 }
 
                 Divider()
 
                 ScrollView {
                     if content.isEmpty {
-                        Text(emptyContentHint)
+                        Text(AppLocalizer.text(.emptyContent, language: language))
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -59,11 +69,7 @@ struct MarkdownPreviewView: View {
     }
 
     private var sidebarTitle: String {
-        language == .zhHans ? "历史文件" : "History"
-    }
-
-    private var emptyContentHint: String {
-        language == .zhHans ? "该文件暂无内容" : "No content in this file"
+        AppLocalizer.text(.historyFiles, language: language)
     }
 
     private func reloadFilesAndContent() {
@@ -88,5 +94,14 @@ struct MarkdownPreviewView: View {
         let current = selectedFilePath ?? initialFilePath
         let url = URL(filePath: current)
         content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+    }
+
+    private func copyMarkdownRaw() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(content, forType: .string)
+        copyFeedbackVisible = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            copyFeedbackVisible = false
+        }
     }
 }

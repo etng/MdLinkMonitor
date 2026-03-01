@@ -9,7 +9,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
 
     func showAbout(language: AppLanguage) {
         let title = language == .zhHans ? "关于 CBM" : "About CBM"
-        let root = AnyView(AboutView())
+        let root = AnyView(AboutView(language: language))
 
         if let window = aboutWindow,
            let hosting = window.contentViewController as? NSHostingController<AnyView> {
