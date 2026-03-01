@@ -10,16 +10,5 @@ struct CBMMenuBarApp: App {
             MenuBarContentView(model: viewModel)
         }
         .menuBarExtraStyle(.window)
-
-        WindowGroup(id: "preview", for: String.self) { value in
-            MarkdownPreviewView(
-                filePath: value.wrappedValue ?? viewModel.openTodayFilePath(),
-                language: viewModel.settings.language
-            )
-        }
-
-        WindowGroup(id: "about") {
-            AboutView()
-        }
     }
 }

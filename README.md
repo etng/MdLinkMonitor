@@ -56,6 +56,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Clone command is fixed to `git c1 {repo}.git` in this iteration.
 - Daily dedup means duplicates are blocked only within the same day.
 - Sparkle update checks require proper app signing and appcast setup in distribution.
+- Update startup failures are handled silently and only written to daily logs.
 - In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
 - When started via `swift run CBMMenuBar`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
 
@@ -65,8 +66,17 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
   - Ensure `Enable Monitoring` is ON in menu bar app.
   - Copy exactly one markdown link unless `Allow Multiple Links` is ON.
   - Check daily log file: `~/Documents/cbm/logs_yyyyMMdd.log` (or your configured output directory).
+  - In debug builds, UI event traces are written with `[event]` prefix.
 - If menu action beeps but no popup:
   - Update to latest code in this repo; menu actions now execute after menu dismiss.
+
+## Dev Diagnostics
+
+- Verbose UI event logging is controlled by `Diagnostics.verboseEventLogging`.
+- File: `Sources/CBMMenuBar/Diagnostics.swift`
+- Default behavior:
+  - `DEBUG`: enabled
+  - non-`DEBUG`: disabled
 
 ## Current Status
 
