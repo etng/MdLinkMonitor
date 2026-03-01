@@ -1,10 +1,10 @@
-# Clipboard Repo Monitor (CBM)
+# MdMonitor
 
 English version: [README.md](./README.md)
 
-CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
+MdMonitor 是一个使用 Swift 开发的 macOS 菜单栏应用。
 
-当开启监控后，它会监听剪贴板中的 Markdown 链接 `[label](link)`。CBM 会：
+当开启监控后，它会监听剪贴板中的 Markdown 链接 `[label](link)`。MdMonitor 会：
 
 1. 将去重后的任务行追加到当天 markdown 文件。
 2. 按可配置域名识别 Git 仓库链接（如 `github.com`、`gitlab.com`）。
@@ -44,7 +44,33 @@ CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
 - 构建：`swift build`
 - 测试：`swift test`
 - 运行 CLI：`swift run cbm help`
-- 运行菜单栏应用：`swift run CBMMenuBar`
+- 运行菜单栏应用：`swift run MdMonitor`
+
+## 打包与发布（命令行）
+
+推荐直接使用 Makefile：
+
+```bash
+make app           # 构建 dist/MdMonitor.app
+make dmg           # 构建 dist/MdMonitor.dmg
+make install       # 安装到 /Applications（可通过 INSTALL_DIR 覆盖）
+make install-local # 安装到 ~/Applications
+```
+
+若当前环境不支持 `hdiutil`，`make dmg` 会自动回退生成 `dist/MdMonitor.zip`。
+
+如果你已经有导出的 `.app`，也可以手工打包 `.dmg`：
+
+```bash
+mkdir -p dist/dmg
+cp -R dist/MdMonitor.app dist/dmg/
+hdiutil create \
+  -volname "MdMonitor" \
+  -srcfolder dist/dmg \
+  -ov \
+  -format UDZO \
+  dist/MdMonitor.dmg
+```
 
 ## CLI
 
@@ -66,7 +92,7 @@ CBM 是一个使用 Swift 开发的 macOS 菜单栏应用。
 - Sparkle 更新需要正确签名与 appcast 配置。
 - 更新失败会静默处理，仅写入当日日志。
 - 开发环境下 `Launch at Login` 可能因签名/Bundle 限制失败。
-- 使用 `swift run CBMMenuBar` 启动时，系统通知会自动禁用（避免非 .app 环境崩溃）。
+- 使用 `swift run MdMonitor` 启动时，系统通知会自动禁用（避免非 .app 环境崩溃）。
 
 ## 排障
 
