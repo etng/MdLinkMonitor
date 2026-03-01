@@ -64,6 +64,21 @@ struct MarkdownPreviewView: View {
             .navigationSplitViewColumnWidth(min: sidebarWidth, ideal: sidebarWidth + 16, max: sidebarWidth + 80)
         } detail: {
             VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Button(model.text(.openSettings)) {
+                        model.openSettings()
+                    }
+                    Button(model.text(.checkForUpdates)) {
+                        model.checkForUpdates()
+                    }
+                    Button(model.text(.about)) {
+                        model.openAbout()
+                    }
+                    Spacer()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
                 HStack {
                     Text(currentFilePath ?? AppLocalizer.text(.noFileForDate, language: language))
                         .font(.caption)
@@ -83,6 +98,9 @@ struct MarkdownPreviewView: View {
                         .font(.caption2)
                         .foregroundStyle(.green)
                 }
+                Text(model.statusText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
                 Divider()
 
