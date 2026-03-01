@@ -1,0 +1,72 @@
+import Foundation
+
+public struct CaptureProcessResult: Sendable {
+    public var totalCandidates: Int
+    public var appendedCount: Int
+    public var clonedCount: Int
+    public var skippedCount: Int
+    public var errors: [String]
+
+    public init(totalCandidates: Int, appendedCount: Int, clonedCount: Int, skippedCount: Int, errors: [String]) {
+        self.totalCandidates = totalCandidates
+        self.appendedCount = appendedCount
+        self.clonedCount = clonedCount
+        self.skippedCount = skippedCount
+        self.errors = errors
+    }
+
+    public static let empty = CaptureProcessResult(totalCandidates: 0, appendedCount: 0, clonedCount: 0, skippedCount: 0, errors: [])
+}
+
+public final class ClipboardCaptureOrchestrator {
+    private let logger: (any Logging)?
+    private let cloneExecutor: GitC1CloneExecutor
+
+    public init(cloneExecutor: GitC1CloneExecutor = GitC1CloneExecutor(), logger: (any Logging)? = nil) {
+        self.cloneExecutor = cloneExecutor
+        self.logger = logger
+    }
+
+    public func process(
+        clipboardText: String,
+        allowMultipleLinks: Bool,
+        store: DailyMarkdownStore,
+        date: Date = Date()
+    ) -> CaptureProcessResult {
+        let captures = ClipboardContentProcessor.extractRepositoryCaptures(from: clipboardText, allowMultipleLinks: allowMultipleLinks)
+        guard !captures.isEmpty else {
+            return .empty
+        }
+
+        var result = CaptureProcessResult(
+            totalCandidates: captures.count,
+            appendedCount: 0,
+            clonedCount: 0,
+            skippedCount: 0,
+            errors: []
+        )
+
+        for capture in captures {
+            do {
+                let appended = try store.appendIfNeeded(label: capture.label, repository: capture.repository, date: date)
+                if appended {
+                    result.appendedCount += 1
+                    let cloneResult = cloneExecutor.clone(repository: capture.repository)
+                    if cloneResult.isSuccess {
+                        result.clonedCount += 1
+                    } else {
+                        result.errors.append("Clone failed: \(capture.repository.cloneURL)")
+                    }
+                } else {
+                    result.skippedCount += 1
+                    logger?.log(.info, "Skip duplicate for day: \(capture.repository.dailyDedupKey)")
+                }
+            } catch {
+                result.errors.append(error.localizedDescription)
+                logger?.log(.error, "Process error: \(error.localizedDescription)")
+            }
+        }
+
+        return result
+    }
+}

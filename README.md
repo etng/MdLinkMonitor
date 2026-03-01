@@ -32,6 +32,27 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Platform: macOS
 - Build: `swift build`
 - Test: `swift test`
+- Run CLI: `swift run cbm help`
+- Run menu bar app: `swift run CBMMenuBar`
+
+## CLI
+
+- `cbm today --path`: print today's markdown file path.
+- `cbm today --print`: print today's markdown file content.
+- `cbm status`: print current settings snapshot.
+
+## Architecture
+
+- `Sources/CBMCore`: parser, URL normalization, daily store, dedup, clipboard pipeline, settings, clone executor.
+- `Sources/CBMMenuBar`: menu bar UI, preferences, preview window, launch-at-login, Sparkle updater entry.
+- `Sources/cbm`: CLI entry.
+- `Tests/CBMCoreTests`: unit tests for core logic.
+
+## Notes
+
+- Clone command is fixed to `git c1 {repo}.git` in this iteration.
+- Daily dedup means duplicates are blocked only within the same day.
+- Sparkle update checks require proper app signing and appcast setup in distribution.
 
 ## Current Status
 

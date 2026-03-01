@@ -22,6 +22,9 @@ let package = Package(
             targets: ["CBMMenuBar"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0"),
+    ],
     targets: [
         .target(
             name: "CBMCore"
@@ -32,7 +35,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "CBMMenuBar",
-            dependencies: ["CBMCore"]
+            dependencies: [
+                "CBMCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ]
         ),
         .testTarget(
             name: "CBMCoreTests",
