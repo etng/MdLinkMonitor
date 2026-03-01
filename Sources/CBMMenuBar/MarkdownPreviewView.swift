@@ -145,7 +145,8 @@ struct MarkdownPreviewView: View {
         }
 
         let url = URL(filePath: todayLogFilePath)
-        todayLogContent = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let raw = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        todayLogContent = makeReverseChronologicalLog(raw)
     }
 
     private func refreshLivePanels() {
@@ -161,5 +162,13 @@ struct MarkdownPreviewView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             copyFeedbackVisible = false
         }
+    }
+
+    private func makeReverseChronologicalLog(_ raw: String) -> String {
+        let lines = raw.split(whereSeparator: \.isNewline).map(String.init)
+        guard !lines.isEmpty else { return "" }
+
+        // Keep rendering lightweight while preserving latest diagnostics at top.
+        return lines.suffix(400).reversed().joined(separator: "\n")
     }
 }

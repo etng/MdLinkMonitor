@@ -8,7 +8,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Toggle(
+            settingToggle(
                 model.text(.enableMonitoring),
                 isOn: Binding(
                     get: { model.settings.monitoringEnabled },
@@ -16,7 +16,7 @@ struct SettingsView: View {
                 )
             )
 
-            Toggle(
+            settingToggle(
                 model.text(.enableNotifications),
                 isOn: Binding(
                     get: { model.settings.notificationsEnabled },
@@ -24,7 +24,7 @@ struct SettingsView: View {
                 )
             )
 
-            Toggle(
+            settingToggle(
                 model.text(.allowMultipleLinks),
                 isOn: Binding(
                     get: { model.settings.allowMultipleLinks },
@@ -32,7 +32,7 @@ struct SettingsView: View {
                 )
             )
 
-            Toggle(
+            settingToggle(
                 model.text(.launchAtLogin),
                 isOn: Binding(
                     get: { model.settings.launchAtLogin },
@@ -88,6 +88,19 @@ struct SettingsView: View {
         }
         .onChange(of: model.settings.repositoryDomains) { _ in
             domainsText = model.repositoryDomainsText
+        }
+    }
+
+    @ViewBuilder
+    private func settingToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            Toggle(title, isOn: isOn)
+                .toggleStyle(.switch)
+                .tint(.green)
+            Spacer(minLength: 8)
+            Text(isOn.wrappedValue ? "ON" : "OFF")
+                .font(.caption.monospaced())
+                .foregroundStyle(isOn.wrappedValue ? .green : .secondary)
         }
     }
 }
