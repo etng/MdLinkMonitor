@@ -7,6 +7,8 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var settings: AppSettings
     @Published private(set) var recentFiles: [URL] = []
     @Published private(set) var statusText: String
+    @Published var mainWindowPanel: MainWindowPanel = .preview
+    @Published var showBackToCalendarInPreview = false
 
     private let settingsStore: any SettingsStoring
     private let launchAtLoginManager: any LaunchAtLoginManaging
@@ -209,36 +211,36 @@ final class MenuBarViewModel: ObservableObject {
         return store.todayFileURL().path(percentEncoded: false)
     }
 
-    func openTodayPreview() {
+    func openTodayMainWindow() {
         let path = openTodayFilePath()
-        logEvent("UI action openTodayPreview path=\(path)")
-        openPreview(filePath: path, panel: .preview)
+        logEvent("UI action openTodayMainWindow path=\(path)")
+        openMainWindow(filePath: path, panel: .preview)
     }
 
-    func openCalendar() {
+    func openMainWindowCalendar() {
         let path = openTodayFilePath()
-        logEvent("UI action openCalendar path=\(path)")
-        openPreview(filePath: path, panel: .calendar)
+        logEvent("UI action openMainWindowCalendar path=\(path)")
+        openMainWindow(filePath: path, panel: .calendar)
     }
 
-    func openPreview(filePath: String, panel: PreviewPanelDestination = .preview) {
-        logEvent("UI action openPreview path=\(filePath)")
-        windowPresenter.showPreview(
-            initialFilePath: filePath,
-            model: self,
-            initialPanel: panel
-        )
+    func openMainWindow(filePath: String, panel: MainWindowPanel = .preview) {
+        logEvent("UI action openMainWindow path=\(filePath), panel=\(panel)")
+        mainWindowPanel = panel
+        if panel != .preview {
+            showBackToCalendarInPreview = false
+        }
+        windowPresenter.showMainWindow(initialFilePath: filePath, model: self)
 
-        let message = local("已打开预览窗口", "Preview window opened")
+        let message = local("已打开主窗口", "Main window opened")
         let withContext = message + ": \(filePath)"
         setStatus(message)
         logger.log(.info, withContext)
-        logEvent("Preview context outputDirectory=\(settings.outputDirectoryPath)")
+        logEvent("Main window context outputDirectory=\(settings.outputDirectoryPath)")
     }
 
     func openAbout() {
         logEvent("UI action openAbout")
-        openPreview(filePath: openTodayFilePath(), panel: .about)
+        openMainWindow(filePath: openTodayFilePath(), panel: .help)
 
         let message = local("已打开帮助面板", "Help panel opened")
         setStatus(message)
@@ -247,7 +249,7 @@ final class MenuBarViewModel: ObservableObject {
 
     func openSettings() {
         logEvent("UI action openSettings")
-        openPreview(filePath: openTodayFilePath(), panel: .settings)
+        openMainWindow(filePath: openTodayFilePath(), panel: .settings)
 
         let message = local("已打开设置面板", "Settings panel opened")
         setStatus(message)
@@ -256,7 +258,7 @@ final class MenuBarViewModel: ObservableObject {
 
     func openUpdatesPanel() {
         logEvent("UI action openUpdatesPanel")
-        openPreview(filePath: openTodayFilePath(), panel: .updates)
+        openMainWindow(filePath: openTodayFilePath(), panel: .updates)
 
         let message = local("已打开更新面板", "Updates panel opened")
         setStatus(message)

@@ -4,23 +4,21 @@ import SwiftUI
 
 @MainActor
 final class WindowPresenter: NSObject, NSWindowDelegate {
-    private var previewWindow: NSWindow?
+    private var mainWindow: NSWindow?
 
-    func showPreview(
+    func showMainWindow(
         initialFilePath: String,
-        model: MenuBarViewModel,
-        initialPanel: PreviewPanelDestination = .preview
+        model: MenuBarViewModel
     ) {
         let title = "Markdown Monitor"
         let root = AnyView(
-            MarkdownPreviewView(
+            MainWindowView(
                 initialFilePath: initialFilePath,
-                model: model,
-                initialPanel: initialPanel
+                model: model
             )
         )
 
-        if let window = previewWindow,
+        if let window = mainWindow,
            let hosting = window.contentViewController as? NSHostingController<AnyView> {
             hosting.rootView = root
             window.title = title
@@ -29,14 +27,14 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         }
 
         let window = makeWindow(title: title, size: NSSize(width: 860, height: 620), rootView: root)
-        previewWindow = window
+        mainWindow = window
         activateAndShow(window)
     }
 
     func windowWillClose(_ notification: Notification) {
         guard let closing = notification.object as? NSWindow else { return }
-        if closing == previewWindow {
-            previewWindow = nil
+        if closing == mainWindow {
+            mainWindow = nil
         }
     }
 

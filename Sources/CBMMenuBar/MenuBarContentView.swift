@@ -13,13 +13,7 @@ struct MenuBarContentView: View {
 
             Button(model.text(.today)) {
                 runAfterMenuDismiss {
-                    model.openTodayPreview()
-                }
-            }
-
-            Button(model.text(.calendar)) {
-                runAfterMenuDismiss {
-                    model.openCalendar()
+                    model.openTodayMainWindow()
                 }
             }
 
@@ -28,7 +22,7 @@ struct MenuBarContentView: View {
                 ForEach(Array(recentFilesWithoutToday.prefix(7)), id: \.path) { file in
                     Button(dateLabel(for: file)) {
                         runAfterMenuDismiss {
-                            model.openPreview(filePath: file.path(percentEncoded: false), panel: .preview)
+                            model.openMainWindow(filePath: file.path(percentEncoded: false), panel: .preview)
                         }
                     }
                 }
