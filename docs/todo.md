@@ -106,6 +106,7 @@
 - [x] 发布 `v0.3.0`（minor）并通过 Release workflow 全链路验证
 - [x] 修复多安装目录冲突导致 Spotlight 启动到旧版本的问题
 - [x] 支持自定义 clone 命令模板（`{repo}` 占位符，可配置并持久化）
+- [x] 将默认克隆模板调整为 `git clone {repo}.git`（更通用）
 
 ## 远期待办
 

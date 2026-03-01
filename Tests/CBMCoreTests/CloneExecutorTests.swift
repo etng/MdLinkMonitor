@@ -14,7 +14,7 @@ private final class MockRunner: CommandRunning {
 }
 
 @Test
-func cloneExecutorUsesGitC1WithCanonicalCloneURL() {
+func cloneExecutorUsesDefaultTemplateWithCanonicalCloneURL() {
     let runner = MockRunner()
     let logger = InMemoryLogger()
     let executor = GitC1CloneExecutor(commandRunner: runner, logger: logger)
@@ -24,7 +24,7 @@ func cloneExecutorUsesGitC1WithCanonicalCloneURL() {
 
     #expect(result.isSuccess)
     #expect(runner.recordedCommand == "/bin/zsh")
-    #expect(runner.recordedArguments == ["-lc", "git c1 https://github.com/owner/repo.git"])
+    #expect(runner.recordedArguments == ["-lc", "git clone https://github.com/owner/repo.git"])
     #expect(logger.entries.count == 2)
     #expect(logger.entries[0].message.contains("Start clone"))
     #expect(logger.entries[1].message.contains("Clone success"))

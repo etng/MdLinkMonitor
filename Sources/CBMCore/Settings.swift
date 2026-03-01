@@ -14,7 +14,7 @@ public enum AppLanguage: String, CaseIterable, Codable, Sendable {
 
 public struct AppSettings: Equatable, Sendable {
     public static let cloneCommandPlaceholder = "{repo}"
-    public static let defaultCloneCommandTemplate = "git c1 {repo}.git"
+    public static let defaultCloneCommandTemplate = "git clone {repo}.git"
 
     public var monitoringEnabled: Bool
     public var notificationsEnabled: Bool
