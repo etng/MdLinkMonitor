@@ -26,7 +26,9 @@ enum L10nKey {
     case copyMarkdown
     case copied
     case historyFiles
+    case calendar
     case emptyContent
+    case noFileForDate
     case todayLogs
     case checkForUpdates
     case aboutHeadline
@@ -62,7 +64,9 @@ enum AppLocalizer {
             case .copyMarkdown: return "复制 Markdown"
             case .copied: return "已复制"
             case .historyFiles: return "历史文件"
+            case .calendar: return "日历"
             case .emptyContent: return "该文件暂无内容"
+            case .noFileForDate: return "所选日期暂无记录"
             case .todayLogs: return "今日日志（自动刷新）"
             case .checkForUpdates: return "检查更新"
             case .aboutHeadline: return "MdMonitor"
@@ -94,7 +98,9 @@ enum AppLocalizer {
             case .copyMarkdown: return "Copy Markdown"
             case .copied: return "Copied"
             case .historyFiles: return "History"
+            case .calendar: return "Calendar"
             case .emptyContent: return "No content in this file"
+            case .noFileForDate: return "No record for selected date"
             case .todayLogs: return "Today's Logs (Auto Refresh)"
             case .checkForUpdates: return "Check for Updates"
             case .aboutHeadline: return "MdMonitor"
