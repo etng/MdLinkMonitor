@@ -1,3 +1,4 @@
+import AppKit
 import CBMCore
 import SwiftUI
 
@@ -6,27 +7,48 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(model.text(.recentFiles))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Menu(model.text(.previewMenu)) {
+                Button(model.text(.today)) {
+                    runAfterMenuDismiss {
+                        model.openTodayPreview()
+                    }
+                }
 
-            if model.recentFiles.isEmpty {
-                Text(model.text(.noRecentFiles))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(Array(model.recentFiles.prefix(7)), id: \.path) { file in
-                    Button(dateLabel(for: file)) {
-                        runAfterMenuDismiss {
-                            model.openPreview(filePath: file.path(percentEncoded: false))
+                Button(model.text(.calendar)) {
+                    runAfterMenuDismiss {
+                        model.openCalendar()
+                    }
+                }
+
+                if !recentFilesWithoutToday.isEmpty {
+                    Divider()
+                    ForEach(Array(recentFilesWithoutToday.prefix(7)), id: \.path) { file in
+                        Button(dateLabel(for: file)) {
+                            runAfterMenuDismiss {
+                                model.openPreview(filePath: file.path(percentEncoded: false), panel: .preview)
+                            }
                         }
                     }
                 }
-            }
 
-            Button(model.todayMenuDateText) {
-                runAfterMenuDismiss {
-                    model.openTodayPreview()
+                Divider()
+
+                Button(model.text(.settingsTitle)) {
+                    runAfterMenuDismiss {
+                        model.openSettings()
+                    }
+                }
+
+                Button(model.text(.checkForUpdates)) {
+                    runAfterMenuDismiss {
+                        model.openUpdatesPanel()
+                    }
+                }
+
+                Button(model.text(.about)) {
+                    runAfterMenuDismiss {
+                        model.openAbout()
+                    }
                 }
             }
 
@@ -41,7 +63,14 @@ struct MenuBarContentView: View {
             }
         }
         .padding(12)
-        .frame(width: 360)
+        .frame(width: 280)
+    }
+
+    private var recentFilesWithoutToday: [URL] {
+        let todayYMD = DailyMarkdownStore.ymdString(from: Date())
+        return model.recentFiles.filter { file in
+            ymdFromFile(file) != todayYMD
+        }
     }
 
     private func runAfterMenuDismiss(_ action: @escaping @MainActor () -> Void) {
@@ -51,16 +80,9 @@ struct MenuBarContentView: View {
     }
 
     private func dateLabel(for file: URL) -> String {
-        let fileName = file.lastPathComponent
-        guard fileName.hasPrefix("links_"), fileName.hasSuffix(".md") else {
-            return fileName
-        }
-
-        let start = fileName.index(fileName.startIndex, offsetBy: 6)
-        let end = fileName.index(fileName.endIndex, offsetBy: -3)
-        let ymd = String(fileName[start..<end])
-        guard let date = Self.ymdParser.date(from: ymd) else {
-            return fileName
+        guard let ymd = ymdFromFile(file),
+              let date = Self.ymdParser.date(from: ymd) else {
+            return file.lastPathComponent
         }
 
         let formatter = DateFormatter()
@@ -70,6 +92,18 @@ struct MenuBarContentView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+
+    private func ymdFromFile(_ file: URL) -> String? {
+        let fileName = file.lastPathComponent
+        guard fileName.hasPrefix("links_"), fileName.hasSuffix(".md") else {
+            return nil
+        }
+
+        let start = fileName.index(fileName.startIndex, offsetBy: 6)
+        let end = fileName.index(fileName.endIndex, offsetBy: -3)
+        let ymd = String(fileName[start..<end])
+        return ymd.count == 8 ? ymd : nil
     }
 
     private static let ymdParser: DateFormatter = {

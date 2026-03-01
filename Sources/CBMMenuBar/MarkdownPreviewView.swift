@@ -3,7 +3,7 @@ import CBMCore
 import MarkdownUI
 import SwiftUI
 
-private enum PreviewPanel: CaseIterable {
+enum PreviewPanelDestination: CaseIterable {
     case preview
     case calendar
     case settings
@@ -28,11 +28,8 @@ struct MarkdownPreviewView: View {
     @State private var files: [URL] = []
     @State private var filesByYMD: [String: URL] = [:]
     @State private var selectedDate = Date()
-    @State private var selectedDateHasRecord = false
 
-    @State private var selectedPanel: PreviewPanel = .preview
-    @State private var hoveredPanel: PreviewPanel?
-    @State private var isCalendarQuickExpanded = false
+    @State private var selectedPanel: PreviewPanelDestination
 
     @State private var selectedFilePath: String?
     @State private var content = ""
@@ -43,6 +40,13 @@ struct MarkdownPreviewView: View {
 
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     private let markdownBottomAnchor = "markdown-bottom-anchor"
+    private let sidebarWidth: CGFloat = 72
+
+    init(initialFilePath: String, model: MenuBarViewModel, initialPanel: PreviewPanelDestination = .preview) {
+        self.initialFilePath = initialFilePath
+        self.model = model
+        _selectedPanel = State(initialValue: initialPanel)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -50,7 +54,7 @@ struct MarkdownPreviewView: View {
             Divider()
             rightPanel
         }
-        .frame(minWidth: 980, minHeight: 680)
+        .frame(minWidth: 980, minHeight: 700)
         .onAppear(perform: reloadFilesAndContent)
         .onChange(of: selectedDate) { _ in
             syncSelectedFileForSelectedDate()
@@ -83,11 +87,6 @@ struct MarkdownPreviewView: View {
         model.settings.previewCalendarScale
     }
 
-    private var sidebarWidth: CGFloat {
-        let base = 210 + (calendarScale - 1.0) * 120
-        return CGFloat(max(190, min(280, base)))
-    }
-
     private var currentFilePath: String? {
         selectedFilePath
     }
@@ -107,78 +106,16 @@ struct MarkdownPreviewView: View {
     }
 
     private var leftSidebar: some View {
-        VStack(alignment: .center, spacing: 12) {
-            VStack(spacing: 10) {
-                ForEach(PreviewPanel.allCases, id: \.self) { panel in
-                    navButton(for: panel)
-                }
+        VStack(spacing: 12) {
+            ForEach(PreviewPanelDestination.allCases, id: \.self) { panel in
+                navButton(for: panel)
             }
-            .padding(.top, 14)
 
-            Text(panelTitle(hoveredPanel ?? selectedPanel))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            Divider()
-                .padding(.horizontal, 8)
-
-            DisclosureGroup(isExpanded: $isCalendarQuickExpanded) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Button {
-                        selectedPanel = .calendar
-                    } label: {
-                        Label(local("打开大日历", "Open Full Calendar"), systemImage: "calendar.badge.clock")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        selectedDate = Date()
-                        syncSelectedFileForSelectedDate()
-                        selectedPanel = .calendar
-                    } label: {
-                        Label(model.text(.goToday), systemImage: "scope")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.top, 4)
-            } label: {
-                Label(model.text(.calendar), systemImage: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 10)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(local("最近日期", "Recent Dates"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                if files.isEmpty {
-                    Text(model.text(.noRecentFiles))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(files.prefix(7)), id: \.path) { file in
-                        Button(shortDateLabel(for: file)) {
-                            openFileInPreview(file)
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 10)
-
-            Spacer()
+            Spacer(minLength: 0)
         }
+        .padding(.vertical, 14)
         .frame(minWidth: sidebarWidth, idealWidth: sidebarWidth, maxWidth: sidebarWidth, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     private var rightPanel: some View {
@@ -313,53 +250,26 @@ struct MarkdownPreviewView: View {
     }
 
     private var calendarPanel: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label(model.text(.calendar), systemImage: "calendar")
                     .font(.title3.weight(.semibold))
-
                 Spacer()
-
-                Button {
-                    selectedDate = Date()
-                    syncSelectedFileForSelectedDate()
-                } label: {
-                    Label(model.text(.goToday), systemImage: "scope")
-                }
-                .buttonStyle(.bordered)
             }
 
-            DatePicker(
-                "",
-                selection: $selectedDate,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.graphical)
-            .scaleEffect(max(1.1, calendarScale + 0.2), anchor: .top)
-            .frame(maxWidth: .infinity, alignment: .top)
-            .padding(.vertical, 8)
-
-            Text(
-                selectedDateHasRecord
-                    ? local("该日期有记录", "Record available for selected date")
-                    : model.text(.noFileForDate)
-            )
-            .font(.subheadline)
-            .foregroundStyle(selectedDateHasRecord ? .green : .secondary)
-
-            if selectedDateHasRecord {
-                Button {
-                    selectedPanel = .preview
-                } label: {
-                    Label(local("在预览中打开所选日期", "Open Selected Date in Preview"), systemImage: "doc.text")
-                }
-                .buttonStyle(.borderedProminent)
+            CalendarBoardView(
+                selectedDate: $selectedDate,
+                language: language,
+                recordYMDs: Set(filesByYMD.keys),
+                scale: calendarScale
+            ) { date in
+                selectedDate = date
+                syncSelectedFileForSelectedDate()
+                selectedPanel = .preview
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(22)
+        .padding(18)
     }
 
     private var updatesPanel: some View {
@@ -392,26 +302,23 @@ struct MarkdownPreviewView: View {
         .padding(22)
     }
 
-    private func navButton(for panel: PreviewPanel) -> some View {
+    private func navButton(for panel: PreviewPanelDestination) -> some View {
         let isActive = panel == selectedPanel
 
         return Button {
             selectedPanel = panel
         } label: {
             Image(systemName: panel.symbolName)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(isActive ? .white : .primary)
-                .frame(width: 36, height: 36)
+                .frame(width: 38, height: 38)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(isActive ? Color.accentColor : Color.clear)
                 )
         }
         .buttonStyle(.plain)
         .help(panelTitle(panel))
-        .onHover { hovering in
-            hoveredPanel = hovering ? panel : nil
-        }
     }
 
     private func iconActionButton(systemName: String, title: String, action: @escaping () -> Void) -> some View {
@@ -424,7 +331,7 @@ struct MarkdownPreviewView: View {
         .help(title)
     }
 
-    private func panelTitle(_ panel: PreviewPanel) -> String {
+    private func panelTitle(_ panel: PreviewPanelDestination) -> String {
         switch panel {
         case .preview: return model.text(.previewTitle)
         case .calendar: return model.text(.calendar)
@@ -432,27 +339,6 @@ struct MarkdownPreviewView: View {
         case .updates: return model.text(.checkForUpdates)
         case .about: return model.text(.about)
         }
-    }
-
-    private func shortDateLabel(for file: URL) -> String {
-        guard let date = dateFromFileURL(file) else {
-            return file.lastPathComponent
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = language == .zhHans
-            ? Locale(identifier: "zh_Hans_CN")
-            : Locale(identifier: "en_US_POSIX")
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
-    }
-
-    private func openFileInPreview(_ file: URL) {
-        guard let date = dateFromFileURL(file) else { return }
-        selectedDate = date
-        syncSelectedFileForSelectedDate()
-        selectedPanel = .preview
     }
 
     private func reloadFilesAndContent() {
@@ -483,7 +369,6 @@ struct MarkdownPreviewView: View {
         }
 
         selectedDate = Date()
-        selectedDateHasRecord = false
         selectedFilePath = nil
         content = ""
         todayLogContent = ""
@@ -492,14 +377,12 @@ struct MarkdownPreviewView: View {
     private func syncSelectedFileForSelectedDate() {
         let key = DailyMarkdownStore.ymdString(from: selectedDate)
         guard let file = filesByYMD[key] else {
-            selectedDateHasRecord = false
             selectedFilePath = nil
             content = ""
             loadTodayLog()
             return
         }
 
-        selectedDateHasRecord = true
         let nextPath = file.path(percentEncoded: false)
         if selectedFilePath != nextPath {
             selectedFilePath = nextPath
@@ -567,7 +450,6 @@ struct MarkdownPreviewView: View {
     private func makeReverseChronologicalLog(_ raw: String) -> String {
         let lines = raw.split(whereSeparator: \.isNewline).map(String.init)
         guard !lines.isEmpty else { return "" }
-
         return lines.suffix(400).reversed().joined(separator: "\n")
     }
 
@@ -624,4 +506,202 @@ struct MarkdownPreviewView: View {
         formatter.dateFormat = "yyyyMMdd"
         return formatter
     }()
+}
+
+private struct CalendarBoardView: View {
+    @Binding var selectedDate: Date
+    let language: AppLanguage
+    let recordYMDs: Set<String>
+    let scale: Double
+    let onDoubleSelect: (Date) -> Void
+
+    @State private var displayedMonth: Date
+    private let calendar = Calendar.autoupdatingCurrent
+
+    init(
+        selectedDate: Binding<Date>,
+        language: AppLanguage,
+        recordYMDs: Set<String>,
+        scale: Double,
+        onDoubleSelect: @escaping (Date) -> Void
+    ) {
+        _selectedDate = selectedDate
+        self.language = language
+        self.recordYMDs = recordYMDs
+        self.scale = scale
+        self.onDoubleSelect = onDoubleSelect
+        _displayedMonth = State(initialValue: Self.startOfMonth(for: selectedDate.wrappedValue))
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Button {
+                    shiftMonth(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+
+                Text(monthTitle)
+                    .font(.title2.weight(.semibold))
+
+                Spacer()
+
+                Button {
+                    shiftMonth(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
+                ForEach(weekdaySymbols, id: \.self) { weekday in
+                    Text(weekday)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
+                ForEach(Array(monthCells.enumerated()), id: \.offset) { _, date in
+                    if let date {
+                        dayCell(date)
+                    } else {
+                        Color.clear
+                            .frame(minHeight: cellHeight)
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onChange(of: selectedDate) { newDate in
+            let targetMonth = Self.startOfMonth(for: newDate)
+            guard !calendar.isDate(targetMonth, equalTo: displayedMonth, toGranularity: .month) else { return }
+            displayedMonth = targetMonth
+        }
+    }
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = language == .zhHans
+            ? Locale(identifier: "zh_Hans_CN")
+            : Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = language == .zhHans ? "yyyy年M月" : "MMMM yyyy"
+        return formatter.string(from: displayedMonth)
+    }
+
+    private var weekdaySymbols: [String] {
+        let symbols = calendar.shortStandaloneWeekdaySymbols
+        let first = max(0, calendar.firstWeekday - 1)
+        return Array(symbols[first...]) + Array(symbols[..<first])
+    }
+
+    private var monthCells: [Date?] {
+        guard let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth)),
+              let dayRange = calendar.range(of: .day, in: .month, for: displayedMonth) else {
+            return []
+        }
+
+        let weekday = calendar.component(.weekday, from: firstDay)
+        let leading = (weekday - calendar.firstWeekday + 7) % 7
+
+        var cells: [Date?] = Array(repeating: nil, count: leading)
+        for day in dayRange {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay) {
+                cells.append(date)
+            }
+        }
+
+        while cells.count % 7 != 0 {
+            cells.append(nil)
+        }
+
+        return cells
+    }
+
+    private var cellHeight: CGFloat {
+        CGFloat(max(58.0, min(92.0, 66.0 * scale)))
+    }
+
+    private func dayCell(_ date: Date) -> some View {
+        let day = calendar.component(.day, from: date)
+        let isToday = calendar.isDateInToday(date)
+        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+        let hasRecord = recordYMDs.contains(DailyMarkdownStore.ymdString(from: date))
+
+        return ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(backgroundColor(isToday: isToday, isSelected: isSelected))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(borderColor(isToday: isToday, isSelected: isSelected), lineWidth: isSelected ? 2.2 : 1)
+                )
+
+            if hasRecord {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.green)
+                    .padding(6)
+            }
+
+            VStack {
+                Text("\(day)")
+                    .font(.system(size: max(14, 17 * scale), weight: isToday ? .bold : .medium))
+                    .foregroundStyle(isToday ? Color.orange : Color.primary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, hasRecord ? 4 : 0)
+        }
+        .frame(minHeight: cellHeight)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            selectedDate = date
+        }
+        .onTapGesture(count: 2) {
+            selectedDate = date
+            onDoubleSelect(date)
+        }
+    }
+
+    private func backgroundColor(isToday: Bool, isSelected: Bool) -> Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.22)
+        }
+        if isToday {
+            return Color.orange.opacity(0.18)
+        }
+        return Color(NSColor.textBackgroundColor)
+    }
+
+    private func borderColor(isToday: Bool, isSelected: Bool) -> Color {
+        if isSelected {
+            return .accentColor
+        }
+        if isToday {
+            return .orange
+        }
+        return Color.secondary.opacity(0.2)
+    }
+
+    private func shiftMonth(by value: Int) {
+        guard let newMonth = calendar.date(byAdding: .month, value: value, to: displayedMonth) else { return }
+        displayedMonth = Self.startOfMonth(for: newMonth)
+    }
+
+    private static func startOfMonth(for date: Date) -> Date {
+        let calendar = Calendar.autoupdatingCurrent
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? date
+    }
 }
