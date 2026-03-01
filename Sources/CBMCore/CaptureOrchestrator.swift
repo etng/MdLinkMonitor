@@ -31,6 +31,7 @@ public final class ClipboardCaptureOrchestrator {
         clipboardText: String,
         allowMultipleLinks: Bool,
         repositoryDomains: Set<String>,
+        cloneCommandTemplate: String = AppSettings.defaultCloneCommandTemplate,
         store: DailyMarkdownStore,
         date: Date = Date()
     ) -> CaptureProcessResult {
@@ -65,7 +66,10 @@ public final class ClipboardCaptureOrchestrator {
                     logger?.log(.info, "Appended markdown entry: \(filePath) [\(capture.markdownURL)]")
 
                     if let repository = capture.repository {
-                        let cloneResult = cloneExecutor.clone(repository: repository)
+                        let cloneResult = cloneExecutor.clone(
+                            repository: repository,
+                            commandTemplate: cloneCommandTemplate
+                        )
                         if cloneResult.isSuccess {
                             result.clonedCount += 1
                         } else {

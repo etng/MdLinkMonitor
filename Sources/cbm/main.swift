@@ -51,6 +51,7 @@ struct CBMCLI {
         print("allow_multiple_links=\(settings.allowMultipleLinks)")
         print("launch_at_login=\(settings.launchAtLogin)")
         print("output_directory=\(settings.outputDirectoryPath)")
+        print("clone_command_template=\(settings.cloneCommandTemplate)")
         print("language=\(settings.language.rawValue)")
     }
 

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @ObservedObject var model: MenuBarViewModel
 
     @State private var domainsText = ""
+    @State private var cloneCommandTemplateText = ""
 
     var body: some View {
         Form {
@@ -115,15 +116,34 @@ struct SettingsView: View {
                     domainsText = model.repositoryDomainsText
                 }
             }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(model.text(.cloneCommandTemplate))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                TextField(model.text(.cloneCommandPlaceholder), text: $cloneCommandTemplateText)
+                    .font(.system(size: 12, weight: .regular, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+
+                Button(model.text(.applyCloneCommandTemplate)) {
+                    model.updateCloneCommandTemplate(from: cloneCommandTemplateText)
+                    cloneCommandTemplateText = model.cloneCommandTemplateText
+                }
+            }
         }
         .formStyle(.grouped)
         .padding(16)
         .frame(minWidth: 560, minHeight: 560)
         .onAppear {
             domainsText = model.repositoryDomainsText
+            cloneCommandTemplateText = model.cloneCommandTemplateText
         }
         .onChange(of: model.settings.repositoryDomains) { _ in
             domainsText = model.repositoryDomainsText
+        }
+        .onChange(of: model.settings.cloneCommandTemplate) { _ in
+            cloneCommandTemplateText = model.cloneCommandTemplateText
         }
     }
 

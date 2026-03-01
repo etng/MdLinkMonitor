@@ -23,11 +23,26 @@ func cloneExecutorUsesGitC1WithCanonicalCloneURL() {
     let result = executor.clone(repository: repo)
 
     #expect(result.isSuccess)
-    #expect(runner.recordedCommand == "/usr/bin/env")
-    #expect(runner.recordedArguments == ["git", "c1", "https://github.com/owner/repo.git"])
+    #expect(runner.recordedCommand == "/bin/zsh")
+    #expect(runner.recordedArguments == ["-lc", "git c1 https://github.com/owner/repo.git"])
     #expect(logger.entries.count == 2)
     #expect(logger.entries[0].message.contains("Start clone"))
     #expect(logger.entries[1].message.contains("Clone success"))
+}
+
+@Test
+func cloneExecutorSupportsCustomTemplate() {
+    let runner = MockRunner()
+    let executor = GitC1CloneExecutor(commandRunner: runner)
+    let repo = GitRepository(host: "gitlab.com", owner: "group", name: "project")
+
+    let _ = executor.clone(
+        repository: repo,
+        commandTemplate: "git clone --depth 1 {repo}.git"
+    )
+
+    #expect(runner.recordedCommand == "/bin/zsh")
+    #expect(runner.recordedArguments == ["-lc", "git clone --depth 1 https://gitlab.com/group/project.git"])
 }
 
 @Test

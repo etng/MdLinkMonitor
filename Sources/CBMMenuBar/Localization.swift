@@ -16,6 +16,9 @@ enum L10nKey {
     case settingsTitle
     case repositoryDomains
     case applyDomains
+    case cloneCommandTemplate
+    case cloneCommandPlaceholder
+    case applyCloneCommandTemplate
     case language
     case previewMenu
     case today
@@ -61,6 +64,9 @@ enum AppLocalizer {
             case .settingsTitle: return "设置"
             case .repositoryDomains: return "仓库域名（每行一个）"
             case .applyDomains: return "应用域名配置"
+            case .cloneCommandTemplate: return "克隆命令模板（必须包含 {repo}）"
+            case .cloneCommandPlaceholder: return "例如：git c1 {repo}.git"
+            case .applyCloneCommandTemplate: return "应用克隆命令"
             case .language: return "语言"
             case .previewMenu: return "主窗口"
             case .today: return "今天"
@@ -102,6 +108,9 @@ enum AppLocalizer {
             case .settingsTitle: return "Settings"
             case .repositoryDomains: return "Repository Domains (one per line)"
             case .applyDomains: return "Apply Domains"
+            case .cloneCommandTemplate: return "Clone Command Template (must include {repo})"
+            case .cloneCommandPlaceholder: return "Example: git c1 {repo}.git"
+            case .applyCloneCommandTemplate: return "Apply Clone Command"
             case .language: return "Language"
             case .previewMenu: return "Main Window"
             case .today: return "Today"

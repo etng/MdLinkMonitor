@@ -14,7 +14,7 @@ English version: [prd.md](./prd.md)
 
 1. 作为用户，我希望 CBM 常驻菜单栏，并且可随时启用/禁用。
 2. 作为用户，当我复制 `[label](link)` 时，能自动追加到当天笔记。
-3. 作为用户，我希望命中仓库规则后自动执行 `git c1 {repo}.git`。
+3. 作为用户，我希望命中仓库规则后自动执行我配置的克隆命令模板。
 4. 作为用户，我希望同一天内重复复制同一链接不会重复写入，仓库链接也不会重复 clone。
 5. 作为用户，我希望可选开启“多链接处理”模式。
 6. 作为用户，我希望可配置仓库域名（例如 `github.com`、`gitlab.com`）。
@@ -68,8 +68,10 @@ English version: [prd.md](./prd.md)
 
 ### 4.6 克隆命令
 
-- 命中仓库规则且非重复时执行：`git c1 {repo}.git`。
+- 命中仓库规则且非重复时执行已配置的克隆命令模板。
+- 模板必须包含 `{repo}` 占位符。
 - `{repo}` 为不带 `.git` 的规范化 HTTPS URL。
+- 默认模板为：`git c1 {repo}.git`。
 - 非仓库链接只写入，不 clone。
 
 ### 4.7 UI 与设置
@@ -88,6 +90,7 @@ English version: [prd.md](./prd.md)
   - Output Directory
   - Language（中文 / English）
   - Repository Domains 编辑与应用
+  - Clone Command Template 编辑与应用
 - 点击近期文件可打开预览窗口。
 - 预览窗口：
   - 左侧历史文件列表
@@ -128,7 +131,6 @@ English version: [prd.md](./prd.md)
 
 - 跨设备同步。
 - 历史文件全文检索。
-- 自定义 clone 命令模板（后续可做）。
 
 ## 7. 验收标准
 
