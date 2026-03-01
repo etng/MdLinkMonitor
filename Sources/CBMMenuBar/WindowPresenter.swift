@@ -25,13 +25,21 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         activateAndShow(window)
     }
 
-    func showPreview(initialFilePath: String, outputDirectoryPath: String, language: AppLanguage) {
+    func showPreview(
+        initialFilePath: String,
+        outputDirectoryPath: String,
+        language: AppLanguage,
+        markdownFontSize: Double,
+        calendarScale: Double
+    ) {
         let title = language == .zhHans ? "Markdown 预览" : "Markdown Preview"
         let root = AnyView(
             MarkdownPreviewView(
                 initialFilePath: initialFilePath,
                 outputDirectoryPath: outputDirectoryPath,
-                language: language
+                language: language,
+                markdownFontSize: markdownFontSize,
+                calendarScale: calendarScale
             )
         )
 

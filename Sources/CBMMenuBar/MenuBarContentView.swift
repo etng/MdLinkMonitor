@@ -32,7 +32,7 @@ struct MenuBarContentView: View {
                 }
             }
 
-            Button(model.text(.openToday)) {
+            Button(model.todayMenuDateText) {
                 runAfterMenuDismiss {
                     model.openTodayPreview()
                 }

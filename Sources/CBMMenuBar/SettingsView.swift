@@ -49,6 +49,34 @@ struct SettingsView: View {
             )
 
             VStack(alignment: .leading, spacing: 8) {
+                Text("\(model.text(.previewMarkdownFontSize)): \(Int(model.settings.previewMarkdownFontSize))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Slider(
+                    value: Binding(
+                        get: { model.settings.previewMarkdownFontSize },
+                        set: { model.updatePreviewMarkdownFontSize($0) }
+                    ),
+                    in: 12...28,
+                    step: 1
+                )
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(model.text(.previewCalendarScale)): \(String(format: "%.2f", model.settings.previewCalendarScale))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Slider(
+                    value: Binding(
+                        get: { model.settings.previewCalendarScale },
+                        set: { model.updatePreviewCalendarScale($0) }
+                    ),
+                    in: 0.9...1.8,
+                    step: 0.05
+                )
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
                 Text("\(model.text(.outputDirectory)): \(model.settings.outputDirectoryPath)")
                     .font(.caption)
                     .foregroundStyle(.secondary)

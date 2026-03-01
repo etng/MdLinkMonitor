@@ -7,6 +7,8 @@ struct MarkdownPreviewView: View {
     let initialFilePath: String
     let outputDirectoryPath: String
     let language: AppLanguage
+    let markdownFontSize: Double
+    let calendarScale: Double
 
     @State private var files: [URL] = []
     @State private var filesByYMD: [String: URL] = [:]
@@ -36,9 +38,18 @@ struct MarkdownPreviewView: View {
                 )
                 .labelsHidden()
                 .datePickerStyle(.graphical)
+                .scaleEffect(calendarScale, anchor: .topLeading)
+                .frame(height: 300 * calendarScale)
                 .onChange(of: selectedDate) { _ in
                     syncSelectedFileForSelectedDate()
                 }
+
+                Button(AppLocalizer.text(.goToday, language: language)) {
+                    selectedDate = Date()
+                    syncSelectedFileForSelectedDate()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
 
                 Text(
                     selectedDateHasRecord
@@ -91,6 +102,7 @@ struct MarkdownPreviewView: View {
                             .padding(.top, 8)
                         } else {
                             Markdown(content)
+                                .font(.system(size: markdownFontSize))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 4)
                         }
