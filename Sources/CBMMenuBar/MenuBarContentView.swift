@@ -46,7 +46,9 @@ struct MenuBarContentView: View {
                 .lineLimit(2)
 
             Button(model.text(.chooseDirectory)) {
-                model.chooseOutputDirectory()
+                runAfterMenuDismiss {
+                    model.chooseOutputDirectory()
+                }
             }
 
             Picker(
@@ -67,27 +69,35 @@ struct MenuBarContentView: View {
                 } else {
                     ForEach(model.recentFiles, id: \.path) { file in
                         Button(file.lastPathComponent) {
-                            NSApp.activate(ignoringOtherApps: true)
-                            openWindow(id: "preview", value: file.path(percentEncoded: false))
+                            runAfterMenuDismiss {
+                                NSApp.activate(ignoringOtherApps: true)
+                                openWindow(id: "preview", value: file.path(percentEncoded: false))
+                            }
                         }
                     }
                 }
             }
 
             Button(model.text(.openToday)) {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "preview", value: model.openTodayFilePath())
+                runAfterMenuDismiss {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "preview", value: model.openTodayFilePath())
+                }
             }
 
             Divider()
 
             Button(model.text(.checkForUpdates)) {
-                model.checkForUpdates()
+                runAfterMenuDismiss {
+                    model.checkForUpdates()
+                }
             }
 
             Button(model.text(.about)) {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "about")
+                runAfterMenuDismiss {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "about")
+                }
             }
 
             Text(model.statusText)
@@ -100,5 +110,11 @@ struct MenuBarContentView: View {
         }
         .padding(12)
         .frame(width: 360)
+    }
+
+    private func runAfterMenuDismiss(_ action: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            action()
+        }
     }
 }

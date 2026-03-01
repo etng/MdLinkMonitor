@@ -59,6 +59,15 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
 - When started via `swift run CBMMenuBar`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
 
+## Troubleshooting
+
+- If clipboard capture appears not working:
+  - Ensure `Enable Monitoring` is ON in menu bar app.
+  - Copy exactly one markdown link unless `Allow Multiple Links` is ON.
+  - Check daily log file: `~/Documents/cbm/logs_yyyyMMdd.log` (or your configured output directory).
+- If menu action beeps but no popup:
+  - Update to latest code in this repo; menu actions now execute after menu dismiss.
+
 ## Current Status
 
 See:

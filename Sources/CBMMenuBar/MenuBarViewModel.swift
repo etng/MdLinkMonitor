@@ -172,6 +172,11 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private func handleClipboardText(_ text: String) {
+        logger.log(.info, "Clipboard changed, length=\(text.count), allowMultiple=\(settings.allowMultipleLinks)")
+
+        let extractedLinks = MarkdownLinkExtractor.extract(from: text)
+        logger.log(.info, "Markdown links extracted=\(extractedLinks.count)")
+
         let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
         let result = orchestrator.process(
             clipboardText: text,
@@ -180,6 +185,16 @@ final class MenuBarViewModel: ObservableObject {
         )
 
         guard result.totalCandidates > 0 else {
+            let hint: String
+            if extractedLinks.isEmpty {
+                hint = local("未识别到 Markdown 链接", "No markdown links detected")
+            } else if !settings.allowMultipleLinks && extractedLinks.count > 1 {
+                hint = local("检测到多链接，当前已忽略（可开启多链接模式）", "Multiple links ignored (enable multiple-link mode)")
+            } else {
+                hint = local("链接不符合 GitHub 仓库格式", "Links are not valid GitHub repository URLs")
+            }
+            setStatus(hint)
+            logger.log(.info, hint)
             return
         }
 
