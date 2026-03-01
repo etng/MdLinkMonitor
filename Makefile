@@ -3,6 +3,7 @@ PRODUCT := MdMonitor
 BUILD_DIR := build
 DIST_DIR := dist
 RELEASE_BIN := .build/release/$(PRODUCT)
+SPARKLE_FRAMEWORK_SRC := .build/release/Sparkle.framework
 APP_DIR := $(DIST_DIR)/$(APP_NAME).app
 DMG_PATH := $(DIST_DIR)/$(APP_NAME).dmg
 ICON_PNG := $(BUILD_DIR)/icon-1024.png
@@ -54,11 +55,21 @@ icon:
 	fi
 
 app: release icon
-	mkdir -p $(APP_DIR)/Contents/MacOS $(APP_DIR)/Contents/Resources
+	mkdir -p $(APP_DIR)/Contents/MacOS $(APP_DIR)/Contents/Resources $(APP_DIR)/Contents/Frameworks
 	cp $(RELEASE_BIN) $(APP_DIR)/Contents/MacOS/$(APP_NAME)
 	chmod +x $(APP_DIR)/Contents/MacOS/$(APP_NAME)
 	cp packaging/Info.plist $(APP_DIR)/Contents/Info.plist
 	@if [ -f $(ICNS_PATH) ]; then cp $(ICNS_PATH) $(APP_DIR)/Contents/Resources/AppIcon.icns; fi
+	@if [ -d $(SPARKLE_FRAMEWORK_SRC) ]; then \
+		rm -rf $(APP_DIR)/Contents/Frameworks/Sparkle.framework; \
+		cp -R $(SPARKLE_FRAMEWORK_SRC) $(APP_DIR)/Contents/Frameworks/Sparkle.framework; \
+	else \
+		echo "ERROR: Sparkle.framework missing at $(SPARKLE_FRAMEWORK_SRC)"; \
+		exit 1; \
+	fi
+	@install_name_tool -delete_rpath /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx $(APP_DIR)/Contents/MacOS/$(APP_NAME) 2>/dev/null || true
+	@otool -l $(APP_DIR)/Contents/MacOS/$(APP_NAME) | grep -q '@executable_path/../Frameworks' || \
+	install_name_tool -add_rpath @executable_path/../Frameworks $(APP_DIR)/Contents/MacOS/$(APP_NAME)
 	codesign --force --deep --sign - $(APP_DIR)
 
 dmg: app
