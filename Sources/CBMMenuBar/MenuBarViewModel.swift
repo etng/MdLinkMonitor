@@ -11,22 +11,35 @@ final class MenuBarViewModel: ObservableObject {
     private let settingsStore: any SettingsStoring
     private let launchAtLoginManager: any LaunchAtLoginManaging
     private let appUpdater: any AppUpdaterManaging
-    private let logger = InMemoryLogger()
+    private let notifier: any UserNotifying
+
+    private let memoryLogger: InMemoryLogger
+    private let fileLogger: DailyFileLogger
+    private let logger: CompositeLogger
+
     private let orchestrator: ClipboardCaptureOrchestrator
     private var monitor: ClipboardMonitor?
 
     init(
         settingsStore: any SettingsStoring = UserDefaultsSettingsStore(),
         launchAtLoginManager: any LaunchAtLoginManaging = LaunchAtLoginManager(),
-        appUpdater: any AppUpdaterManaging = SparkleUpdaterManager()
+        appUpdater: any AppUpdaterManaging = SparkleUpdaterManager(),
+        notifier: any UserNotifying = UserNotificationManager()
     ) {
         self.settingsStore = settingsStore
         self.launchAtLoginManager = launchAtLoginManager
         self.appUpdater = appUpdater
+        self.notifier = notifier
 
         let loaded = settingsStore.load()
         self.settings = loaded
         self.statusText = AppLocalizer.text(.statusIdle, language: loaded.language)
+
+        let memoryLogger = InMemoryLogger()
+        let fileLogger = DailyFileLogger(baseDirectoryPath: loaded.outputDirectoryPath)
+        self.memoryLogger = memoryLogger
+        self.fileLogger = fileLogger
+        self.logger = CompositeLogger(loggers: [memoryLogger, fileLogger])
 
         let executor = GitC1CloneExecutor(logger: logger)
         self.orchestrator = ClipboardCaptureOrchestrator(cloneExecutor: executor, logger: logger)
@@ -40,6 +53,7 @@ final class MenuBarViewModel: ObservableObject {
         monitor.start()
         self.monitor = monitor
 
+        logger.log(.info, "App started")
         reloadRecentFiles()
     }
 
@@ -48,29 +62,69 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateMonitoringEnabled(_ enabled: Bool) {
-        settings.monitoringEnabled = enabled
+        updateSettings { state in
+            state.monitoringEnabled = enabled
+        }
+
         monitor?.isEnabled = enabled
-        persist()
+        let message = enabled ? local("监控已启用", "Monitoring enabled") : local("监控已关闭", "Monitoring disabled")
+        setStatus(message)
+        logger.log(.info, message)
+        notifyIfEnabled(message)
+    }
+
+    func updateNotificationsEnabled(_ enabled: Bool) {
+        updateSettings { state in
+            state.notificationsEnabled = enabled
+        }
+
+        let message = enabled ? local("系统通知已启用", "System notifications enabled") : local("系统通知已关闭", "System notifications disabled")
+        setStatus(message)
+        logger.log(.info, message)
     }
 
     func updateAllowMultipleLinks(_ enabled: Bool) {
-        settings.allowMultipleLinks = enabled
-        persist()
+        updateSettings { state in
+            state.allowMultipleLinks = enabled
+        }
+
+        let message = enabled ? local("多链接模式已启用", "Multiple-link mode enabled") : local("多链接模式已关闭", "Multiple-link mode disabled")
+        setStatus(message)
+        logger.log(.info, message)
+        notifyIfEnabled(message)
     }
 
     func updateLaunchAtLogin(_ enabled: Bool) {
+        NSApp.activate(ignoringOtherApps: true)
+
         if launchAtLoginManager.setEnabled(enabled) {
-            settings.launchAtLogin = enabled
-            persist()
+            updateSettings { state in
+                state.launchAtLogin = enabled
+            }
+            let message = enabled ? local("开机启动已启用", "Launch at login enabled") : local("开机启动已关闭", "Launch at login disabled")
+            setStatus(message)
+            logger.log(.info, message)
+            notifyIfEnabled(message)
+        } else {
+            let message = local("开机启动设置失败（开发环境可能受限）", "Failed to update launch-at-login setting")
+            setStatus(message)
+            logger.log(.error, message)
+            notifyIfEnabled(message)
         }
     }
 
     func updateLanguage(_ language: AppLanguage) {
-        settings.language = language
-        persist()
+        updateSettings { state in
+            state.language = language
+        }
+        let message = local("语言已切换", "Language updated")
+        setStatus(message)
+        logger.log(.info, message)
     }
 
     func chooseOutputDirectory() {
+        NSApp.activate(ignoringOtherApps: true)
+
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -79,9 +133,21 @@ final class MenuBarViewModel: ObservableObject {
         panel.directoryURL = URL(filePath: NSString(string: settings.outputDirectoryPath).expandingTildeInPath)
 
         if panel.runModal() == .OK, let url = panel.url {
-            settings.outputDirectoryPath = url.path(percentEncoded: false)
-            persist()
+            let path = url.path(percentEncoded: false)
+            updateSettings { state in
+                state.outputDirectoryPath = path
+            }
+            fileLogger.baseDirectoryPath = path
+
             reloadRecentFiles()
+            let message = local("输出目录已更新", "Output directory updated") + ": \(path)"
+            setStatus(message)
+            logger.log(.info, message)
+            notifyIfEnabled(message)
+        } else {
+            let message = local("已取消目录选择", "Directory selection canceled")
+            setStatus(message)
+            logger.log(.info, message)
         }
     }
 
@@ -96,8 +162,13 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func checkForUpdates() {
+        NSApp.activate(ignoringOtherApps: true)
         appUpdater.checkForUpdates()
-        logger.log(.info, "Update check requested")
+
+        let message = local("已发起更新检查", "Update check requested")
+        setStatus(message)
+        logger.log(.info, message)
+        notifyIfEnabled(message)
     }
 
     private func handleClipboardText(_ text: String) {
@@ -108,15 +179,45 @@ final class MenuBarViewModel: ObservableObject {
             store: store
         )
 
-        if result.totalCandidates == 0 {
+        guard result.totalCandidates > 0 else {
             return
         }
 
-        statusText = "+\(result.appendedCount) / clone \(result.clonedCount) / skip \(result.skippedCount)"
+        let summary = local(
+            "识别 \(result.totalCandidates) 个仓库，新增 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
+            "Detected \(result.totalCandidates) repos, added \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
+        )
+
+        setStatus(summary)
+        logger.log(.info, summary)
         reloadRecentFiles()
+
+        if !result.errors.isEmpty {
+            let errorSummary = local("处理有失败，请查看当日日志", "Processing had failures, check daily log")
+            logger.log(.error, result.errors.joined(separator: " | "))
+            notifyIfEnabled(errorSummary)
+        } else {
+            notifyIfEnabled(summary)
+        }
     }
 
-    private func persist() {
-        settingsStore.save(settings)
+    private func updateSettings(_ mutation: (inout AppSettings) -> Void) {
+        var next = settings
+        mutation(&next)
+        settings = next
+        settingsStore.save(next)
+    }
+
+    private func setStatus(_ message: String) {
+        statusText = message
+    }
+
+    private func notifyIfEnabled(_ message: String) {
+        guard settings.notificationsEnabled else { return }
+        notifier.notify(title: text(.appTitle), body: message)
+    }
+
+    private func local(_ zhHans: String, _ en: String) -> String {
+        settings.language == .zhHans ? zhHans : en
     }
 }

@@ -16,6 +16,14 @@ struct MenuBarContentView: View {
             )
 
             Toggle(
+                model.text(.enableNotifications),
+                isOn: Binding(
+                    get: { model.settings.notificationsEnabled },
+                    set: { model.updateNotificationsEnabled($0) }
+                )
+            )
+
+            Toggle(
                 model.text(.allowMultipleLinks),
                 isOn: Binding(
                     get: { model.settings.allowMultipleLinks },
@@ -59,6 +67,7 @@ struct MenuBarContentView: View {
                 } else {
                     ForEach(model.recentFiles, id: \.path) { file in
                         Button(file.lastPathComponent) {
+                            NSApp.activate(ignoringOtherApps: true)
                             openWindow(id: "preview", value: file.path(percentEncoded: false))
                         }
                     }
@@ -66,6 +75,7 @@ struct MenuBarContentView: View {
             }
 
             Button(model.text(.openToday)) {
+                NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "preview", value: model.openTodayFilePath())
             }
 
@@ -76,6 +86,7 @@ struct MenuBarContentView: View {
             }
 
             Button(model.text(.about)) {
+                NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "about")
             }
 

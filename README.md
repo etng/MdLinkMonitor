@@ -11,9 +11,11 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 ## Key Features
 
 - Menu bar app with enable/disable monitoring switch.
+- Optional system notifications with in-app toggle.
 - Optional launch at login.
 - Chinese by default with English localization support and runtime language switch.
 - Daily file output under configurable directory (default: `~/Documents/cbm`).
+- Daily log output under same directory (`logs_yyyyMMdd.log`).
 - Daily de-duplication for both markdown append and clone.
 - Optional multi-link processing for clipboard text containing multiple markdown links.
 - Recent files list (sorted by date desc) and markdown preview window.
@@ -25,6 +27,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Directory: `~/Documents/cbm`
 - File name: `links_yyyyMMdd.md`
 - Line format: `* [ ] [label](https://github.com/owner/repo)`
+- Log file: `logs_yyyyMMdd.log`
 
 ## Development
 
@@ -53,6 +56,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Clone command is fixed to `git c1 {repo}.git` in this iteration.
 - Daily dedup means duplicates are blocked only within the same day.
 - Sparkle update checks require proper app signing and appcast setup in distribution.
+- In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
 
 ## Current Status
 
