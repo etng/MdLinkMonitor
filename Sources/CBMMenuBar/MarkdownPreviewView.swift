@@ -81,7 +81,22 @@ struct MarkdownPreviewView: View {
                 if currentFilePath == todayFilePath {
                     Divider()
 
-                    DisclosureGroup(AppLocalizer.text(.todayLogs, language: language), isExpanded: $showLogPanel) {
+                    Button {
+                        showLogPanel.toggle()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showLogPanel ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(AppLocalizer.text(.todayLogs, language: language))
+                                .font(.subheadline)
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if showLogPanel {
                         ScrollView {
                             Text(todayLogContent.isEmpty ? "-" : todayLogContent)
                                 .font(.system(size: 12, weight: .regular, design: .monospaced))

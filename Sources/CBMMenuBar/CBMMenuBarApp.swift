@@ -1,13 +1,21 @@
+import AppKit
 import CBMCore
 import SwiftUI
 
 @main
-struct CBMMenuBarApp: App {
+struct MdMonitorApp: App {
     @StateObject private var viewModel = MenuBarViewModel()
+    private let menuBarIcon = AppIconFactory.menuBarIcon()
+
+    init() {
+        NSApplication.shared.applicationIconImage = AppIconFactory.dockIcon()
+    }
 
     var body: some Scene {
-        MenuBarExtra(viewModel.text(.appTitle), systemImage: "link") {
+        MenuBarExtra {
             MenuBarContentView(model: viewModel)
+        } label: {
+            Image(nsImage: menuBarIcon)
         }
         .menuBarExtraStyle(.window)
     }

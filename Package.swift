@@ -18,8 +18,8 @@ let package = Package(
             targets: ["cbm"]
         ),
         .executable(
-            name: "CBMMenuBar",
-            targets: ["CBMMenuBar"]
+            name: "MdMonitor",
+            targets: ["MdMonitor"]
         ),
     ],
     dependencies: [
@@ -35,12 +35,13 @@ let package = Package(
             dependencies: ["CBMCore"]
         ),
         .executableTarget(
-            name: "CBMMenuBar",
+            name: "MdMonitor",
             dependencies: [
                 "CBMCore",
                 .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
-            ]
+            ],
+            path: "Sources/CBMMenuBar"
         ),
         .testTarget(
             name: "CBMCoreTests",

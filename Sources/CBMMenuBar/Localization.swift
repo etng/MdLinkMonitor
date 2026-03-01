@@ -38,7 +38,7 @@ enum AppLocalizer {
         switch language {
         case .zhHans:
             switch key {
-            case .appTitle: return "剪贴板仓库监视"
+            case .appTitle: return "MdMonitor"
             case .enableMonitoring: return "启用监控"
             case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
@@ -65,12 +65,12 @@ enum AppLocalizer {
             case .emptyContent: return "该文件暂无内容"
             case .todayLogs: return "今日日志（自动刷新）"
             case .checkForUpdates: return "检查更新"
-            case .aboutHeadline: return "剪贴板仓库监视"
+            case .aboutHeadline: return "MdMonitor"
             case .aboutDescription: return "一个用于从 Markdown 链接中收集 Git 仓库并自动处理的 Swift 菜单栏应用。"
             }
         case .en:
             switch key {
-            case .appTitle: return "Clipboard Repo Monitor"
+            case .appTitle: return "MdMonitor"
             case .enableMonitoring: return "Enable Monitoring"
             case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
@@ -97,7 +97,7 @@ enum AppLocalizer {
             case .emptyContent: return "No content in this file"
             case .todayLogs: return "Today's Logs (Auto Refresh)"
             case .checkForUpdates: return "Check for Updates"
-            case .aboutHeadline: return "Clipboard Repo Monitor"
+            case .aboutHeadline: return "MdMonitor"
             case .aboutDescription: return "Swift menu bar app for collecting and processing Git repositories from markdown links."
             }
         }

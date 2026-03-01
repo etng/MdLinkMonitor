@@ -6,7 +6,7 @@ struct AboutView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("CBM")
+            Text("MdMonitor")
                 .font(.title2)
                 .bold()
             Text(AppLocalizer.text(.aboutHeadline, language: language))

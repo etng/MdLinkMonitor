@@ -1,10 +1,10 @@
-# Clipboard Repo Monitor (CBM)
+# MdMonitor
 
 Chinese version: [README.zh-CN.md](./README.zh-CN.md)
 
-CBM is a macOS menu bar app written in Swift.
+MdMonitor is a macOS menu bar app written in Swift.
 
-When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. CBM:
+When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. MdMonitor:
 
 1. Appends deduplicated markdown task lines into the daily file.
 2. Detects Git repository links by configured domains (for example `github.com`, `gitlab.com`).
@@ -44,37 +44,48 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Build: `swift build`
 - Test: `swift test`
 - Run CLI: `swift run cbm help`
-- Run menu bar app: `swift run CBMMenuBar`
+- Run menu bar app: `swift run MdMonitor`
 
 ## Packaging & Distribution
 
 ### Build a `.app` bundle (recommended with Xcode)
 
 1. Open `Package.swift` in Xcode.
-2. Select product `CBMMenuBar` and target `My Mac`.
+2. Select product `MdMonitor` and target `My Mac`.
 3. Use `Product -> Archive`.
 4. In Organizer, choose `Distribute App -> Copy App` (or export signed build).
-5. You will get `CBMMenuBar.app` for local install/testing.
+5. You will get `MdMonitor.app` for local install/testing.
 
 ### Build a `.dmg` from an existing `.app`
 
-Assume `CBMMenuBar.app` is already exported to `dist/CBMMenuBar.app`:
+Use CLI packaging directly:
+
+```bash
+make app         # build dist/MdMonitor.app
+make dmg         # build dist/MdMonitor.dmg
+make install     # install to /Applications (or INSTALL_DIR override)
+make install-local
+```
+
+If `hdiutil` is unavailable in your environment, `make dmg` falls back to `dist/MdMonitor.zip`.
+
+If you already have an exported app, you can still create dmg manually. Assume `MdMonitor.app` is at `dist/MdMonitor.app`:
 
 ```bash
 mkdir -p dist/dmg
-cp -R dist/CBMMenuBar.app dist/dmg/
+cp -R dist/MdMonitor.app dist/dmg/
 hdiutil create \
-  -volname "CBMMenuBar" \
+  -volname "MdMonitor" \
   -srcfolder dist/dmg \
   -ov \
   -format UDZO \
-  dist/CBMMenuBar.dmg
+  dist/MdMonitor.dmg
 ```
 
 ### User installation
 
-1. Open `CBMMenuBar.dmg`.
-2. Drag `CBMMenuBar.app` into `Applications`.
+1. Open `MdMonitor.dmg`.
+2. Drag `MdMonitor.app` into `Applications`.
 3. Launch from `Applications` (first launch may require Gatekeeper confirmation).
 
 ### Release notes
@@ -102,7 +113,7 @@ hdiutil create \
 - Sparkle update checks require proper app signing and appcast setup in distribution.
 - Update startup failures are handled silently and only written to daily logs.
 - In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
-- When started via `swift run CBMMenuBar`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
+- When started via `swift run MdMonitor`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
 
 ## Troubleshooting
 
