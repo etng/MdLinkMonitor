@@ -1,16 +1,18 @@
 import Foundation
 
-public struct GitHubRepository: Equatable, Hashable, Sendable {
+public struct GitRepository: Equatable, Hashable, Sendable {
+    public let host: String
     public let owner: String
     public let name: String
 
-    public init(owner: String, name: String) {
+    public init(host: String = "github.com", owner: String, name: String) {
+        self.host = host
         self.owner = owner
         self.name = name
     }
 
     public var canonicalURL: String {
-        "https://github.com/\(owner)/\(name)"
+        "https://\(host)/\(owner)/\(name)"
     }
 
     public var cloneURL: String {
@@ -18,12 +20,36 @@ public struct GitHubRepository: Equatable, Hashable, Sendable {
     }
 
     public var dailyDedupKey: String {
-        "\(owner.lowercased())/\(name.lowercased())"
+        "\(host.lowercased())/\(owner.lowercased())/\(name.lowercased())"
     }
 }
 
-public enum GitHubRepositoryParser {
-    public static func parse(from rawURL: String) -> GitHubRepository? {
+public typealias GitHubRepository = GitRepository
+
+public enum URLNormalizer {
+    public static func normalizedURLForDedup(_ rawURL: String) -> String {
+        let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard var components = URLComponents(string: trimmed) else {
+            return trimmed
+        }
+
+        components.query = nil
+        components.fragment = nil
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
+
+        var path = components.path.isEmpty ? "" : components.path
+        while path.count > 1 && path.hasSuffix("/") {
+            path.removeLast()
+        }
+        components.path = path
+
+        return components.url?.absoluteString ?? trimmed
+    }
+}
+
+public enum GitRepositoryParser {
+    public static func parse(from rawURL: String, allowedDomains: Set<String>) -> GitRepository? {
         guard var components = URLComponents(string: rawURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return nil
         }
@@ -35,7 +61,7 @@ public enum GitHubRepositoryParser {
             let scheme = components.scheme?.lowercased(),
             scheme == "https",
             let host = components.host?.lowercased(),
-            host == "github.com"
+            allowedDomains.contains(host)
         else {
             return nil
         }
@@ -58,13 +84,19 @@ public enum GitHubRepositoryParser {
             return nil
         }
 
-        return GitHubRepository(owner: owner, name: repo)
+        return GitRepository(host: host, owner: owner, name: repo)
     }
 
     private static func isValidSegment(_ value: String) -> Bool {
         guard !value.isEmpty else { return false }
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
         return value.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+}
+
+public enum GitHubRepositoryParser {
+    public static func parse(from rawURL: String) -> GitRepository? {
+        GitRepositoryParser.parse(from: rawURL, allowedDomains: ["github.com"])
     }
 }
 

@@ -25,9 +25,10 @@ func githubRepoParsesAndNormalizes() {
 
     #expect(parsed?.owner == "owner")
     #expect(parsed?.name == "repo")
+    #expect(parsed?.host == "github.com")
     #expect(parsed?.canonicalURL == "https://github.com/owner/repo")
     #expect(parsed?.cloneURL == "https://github.com/owner/repo.git")
-    #expect(parsed?.dailyDedupKey == "owner/repo")
+    #expect(parsed?.dailyDedupKey == "github.com/owner/repo")
 }
 
 @Test
@@ -36,6 +37,22 @@ func githubRepoRejectsNonRepoOrPath() {
     #expect(GitHubRepositoryParser.parse(from: "https://github.com/owner/repo/issues") == nil)
     #expect(GitHubRepositoryParser.parse(from: "http://github.com/owner/repo") == nil)
     #expect(GitHubRepositoryParser.parse(from: "https://example.com/owner/repo") == nil)
+}
+
+@Test
+func genericGitRepositoryParserSupportsGitLab() {
+    let parsed = GitRepositoryParser.parse(
+        from: "https://gitlab.com/group/project/-/issues/1",
+        allowedDomains: ["github.com", "gitlab.com"]
+    )
+    #expect(parsed == nil)
+
+    let repoParsed = GitRepositoryParser.parse(
+        from: "https://gitlab.com/group/project?tab=readme#x",
+        allowedDomains: ["github.com", "gitlab.com"]
+    )
+    #expect(repoParsed?.host == "gitlab.com")
+    #expect(repoParsed?.canonicalURL == "https://gitlab.com/group/project")
 }
 
 @Test

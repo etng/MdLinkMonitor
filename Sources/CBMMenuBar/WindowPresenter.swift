@@ -6,6 +6,7 @@ import SwiftUI
 final class WindowPresenter: NSObject, NSWindowDelegate {
     private var aboutWindow: NSWindow?
     private var previewWindow: NSWindow?
+    private var settingsWindow: NSWindow?
 
     func showAbout(language: AppLanguage) {
         let title = language == .zhHans ? "关于 CBM" : "About CBM"
@@ -47,6 +48,23 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         activateAndShow(window)
     }
 
+    func showSettings(model: MenuBarViewModel, language: AppLanguage) {
+        let title = AppLocalizer.text(.settingsTitle, language: language)
+        let root = AnyView(SettingsView(model: model))
+
+        if let window = settingsWindow,
+           let hosting = window.contentViewController as? NSHostingController<AnyView> {
+            hosting.rootView = root
+            window.title = title
+            activateAndShow(window)
+            return
+        }
+
+        let window = makeWindow(title: title, size: NSSize(width: 620, height: 640), rootView: root)
+        settingsWindow = window
+        activateAndShow(window)
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closing = notification.object as? NSWindow else { return }
         if closing == aboutWindow {
@@ -54,6 +72,9 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         }
         if closing == previewWindow {
             previewWindow = nil
+        }
+        if closing == settingsWindow {
+            settingsWindow = nil
         }
     }
 

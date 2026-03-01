@@ -4,11 +4,11 @@ Chinese version: [README.zh-CN.md](./README.zh-CN.md)
 
 CBM is a macOS menu bar app written in Swift.
 
-When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. If the link is a GitHub repository URL (`https://github.com/owner/repo`), CBM:
+When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. CBM:
 
-1. Normalizes the repository URL (ignores query/hash, trims trailing slash and `.git`).
-2. Appends a task line to the daily markdown file.
-3. Runs `git c1 {repo}.git` to clone the repository.
+1. Appends deduplicated markdown task lines into the daily file.
+2. Detects Git repository links by configured domains (for example `github.com`, `gitlab.com`).
+3. Normalizes matched repository URLs (ignores query/hash, trims trailing slash and `.git`), then runs `git c1 {repo}.git`.
 
 ## Key Features
 
@@ -19,9 +19,13 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Daily file output under configurable directory (default: `~/Documents/cbm`).
 - Daily log output under same directory (`logs_yyyyMMdd.log`).
 - Daily de-duplication for both markdown append and clone.
+- Non-repository markdown links are still appended (without clone).
+- Git repository recognition supports configurable domains (for example `github.com`, `gitlab.com`).
 - Optional multi-link processing for clipboard text containing multiple markdown links.
 - Recent 7-day files shown directly in menu.
+- Dedicated Settings window for configuration.
 - Preview window with left-side history file browser.
+- Today preview includes a default-collapsed live log panel for troubleshooting.
 - CLI command to get today's markdown path/content.
 - Sparkle 2 based in-app update channel (non-App Store distribution).
 
@@ -29,7 +33,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 
 - Directory: `~/Documents/cbm`
 - File name: `links_yyyyMMdd.md`
-- Line format: `* [ ] [label](https://github.com/owner/repo)`
+- Line format: `* [ ] [label](https://example.com/path)`
 - Log file: `logs_yyyyMMdd.log`
 
 ## Development
@@ -71,6 +75,9 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
   - Check daily log file: `~/Documents/cbm/logs_yyyyMMdd.log` (or your configured output directory).
   - On successful append, logs include `Appended markdown entry: ...`.
   - In debug builds, UI event traces are written with `[event]` prefix.
+- If a link is not recognized as a repository domain/path:
+  - It is still appended to markdown.
+  - Clone is skipped by design.
 - If menu action beeps but no popup:
   - Update to latest code in this repo; menu actions now execute after menu dismiss.
 

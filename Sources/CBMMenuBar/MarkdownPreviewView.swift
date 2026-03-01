@@ -1,6 +1,6 @@
+import AppKit
 import CBMCore
 import MarkdownUI
-import AppKit
 import SwiftUI
 
 struct MarkdownPreviewView: View {
@@ -12,6 +12,11 @@ struct MarkdownPreviewView: View {
     @State private var selectedFilePath: String?
     @State private var content = ""
     @State private var copyFeedbackVisible = false
+
+    @State private var showLogPanel = false
+    @State private var todayLogContent = ""
+
+    private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationSplitView {
@@ -58,6 +63,19 @@ struct MarkdownPreviewView: View {
                             .padding(.top, 4)
                     }
                 }
+
+                if currentFilePath == todayFilePath {
+                    Divider()
+
+                    DisclosureGroup(AppLocalizer.text(.todayLogs, language: language), isExpanded: $showLogPanel) {
+                        ScrollView {
+                            Text(todayLogContent.isEmpty ? "-" : todayLogContent)
+                                .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(minHeight: 120, maxHeight: 180)
+                    }
+                }
             }
             .padding(16)
         }
@@ -65,11 +83,33 @@ struct MarkdownPreviewView: View {
         .onAppear(perform: reloadFilesAndContent)
         .onChange(of: selectedFilePath) { _ in
             loadSelectedContent()
+            loadTodayLog()
+        }
+        .onReceive(refreshTimer) { _ in
+            refreshLivePanels()
         }
     }
 
     private var sidebarTitle: String {
         AppLocalizer.text(.historyFiles, language: language)
+    }
+
+    private var currentFilePath: String {
+        selectedFilePath ?? initialFilePath
+    }
+
+    private var todayFilePath: String {
+        DailyMarkdownStore(baseDirectoryPath: outputDirectoryPath)
+            .todayFileURL()
+            .path(percentEncoded: false)
+    }
+
+    private var todayLogFilePath: String {
+        let ymd = DailyMarkdownStore.ymdString(from: Date())
+        let outputDir = NSString(string: outputDirectoryPath).expandingTildeInPath
+        return URL(filePath: outputDir)
+            .appendingPathComponent("logs_\(ymd).log")
+            .path(percentEncoded: false)
     }
 
     private func reloadFilesAndContent() {
@@ -78,6 +118,7 @@ struct MarkdownPreviewView: View {
 
         if let selected = selectedFilePath, files.contains(where: { $0.path(percentEncoded: false) == selected }) {
             loadSelectedContent()
+            loadTodayLog()
             return
         }
 
@@ -88,12 +129,29 @@ struct MarkdownPreviewView: View {
         }
 
         loadSelectedContent()
+        loadTodayLog()
     }
 
     private func loadSelectedContent() {
-        let current = selectedFilePath ?? initialFilePath
-        let url = URL(filePath: current)
+        let url = URL(filePath: currentFilePath)
         content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+    }
+
+    private func loadTodayLog() {
+        // Logs panel is mainly for today's preview diagnostics.
+        guard currentFilePath == todayFilePath else {
+            todayLogContent = ""
+            return
+        }
+
+        let url = URL(filePath: todayLogFilePath)
+        todayLogContent = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+    }
+
+    private func refreshLivePanels() {
+        if currentFilePath == todayFilePath {
+            loadTodayLog()
+        }
     }
 
     private func copyMarkdownRaw() {

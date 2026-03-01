@@ -6,59 +6,9 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle(
-                model.text(.enableMonitoring),
-                isOn: Binding(
-                    get: { model.settings.monitoringEnabled },
-                    set: { model.updateMonitoringEnabled($0) }
-                )
-            )
-
-            Toggle(
-                model.text(.enableNotifications),
-                isOn: Binding(
-                    get: { model.settings.notificationsEnabled },
-                    set: { model.updateNotificationsEnabled($0) }
-                )
-            )
-
-            Toggle(
-                model.text(.allowMultipleLinks),
-                isOn: Binding(
-                    get: { model.settings.allowMultipleLinks },
-                    set: { model.updateAllowMultipleLinks($0) }
-                )
-            )
-
-            Toggle(
-                model.text(.launchAtLogin),
-                isOn: Binding(
-                    get: { model.settings.launchAtLogin },
-                    set: { model.updateLaunchAtLogin($0) }
-                )
-            )
-
-            Divider()
-
-            Text("\(model.text(.outputDirectory)): \(model.settings.outputDirectoryPath)")
-                .font(.caption)
-                .lineLimit(2)
-
-            Button(model.text(.chooseDirectory)) {
+            Button(model.text(.openSettings)) {
                 runAfterMenuDismiss {
-                    model.chooseOutputDirectory()
-                }
-            }
-
-            Picker(
-                model.text(.language),
-                selection: Binding(
-                    get: { model.settings.language },
-                    set: { model.updateLanguage($0) }
-                )
-            ) {
-                ForEach(AppLanguage.allCases, id: \.self) { language in
-                    Text(language.displayName).tag(language)
+                    model.openSettings()
                 }
             }
 

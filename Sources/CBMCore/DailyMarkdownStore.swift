@@ -40,17 +40,33 @@ public struct DailyMarkdownStore {
         let content = try readContent(for: date)
         let links = MarkdownLinkExtractor.extract(from: content)
 
-        return Set(links.compactMap { link in
-            GitHubRepositoryParser.parse(from: link.url)?.dailyDedupKey
-        })
+        var keys: Set<String> = []
+        for link in links {
+            keys.insert(URLNormalizer.normalizedURLForDedup(link.url))
+            if let repositoryKey = Self.repositoryLikeDedupKey(from: link.url) {
+                keys.insert(repositoryKey)
+            }
+        }
+        return keys
     }
 
     @discardableResult
     public func appendIfNeeded(label: String, repository: GitHubRepository, date: Date = Date()) throws -> Bool {
+        try appendIfNeeded(
+            label: label,
+            linkURL: repository.canonicalURL,
+            dedupKey: repository.dailyDedupKey,
+            date: date
+        )
+    }
+
+    @discardableResult
+    public func appendIfNeeded(label: String, linkURL: String, dedupKey: String? = nil, date: Date = Date()) throws -> Bool {
         try ensureBaseDirectoryExists()
 
         let existingKeys = try readDailyDedupKeys(for: date)
-        guard !existingKeys.contains(repository.dailyDedupKey) else {
+        let key = dedupKey ?? URLNormalizer.normalizedURLForDedup(linkURL)
+        guard !existingKeys.contains(key) else {
             return false
         }
 
@@ -60,7 +76,7 @@ public struct DailyMarkdownStore {
             existing = try String(contentsOf: dailyFile, encoding: .utf8)
         }
 
-        let line = MarkdownTaskLineBuilder.makeLine(label: label, repositoryURL: repository.canonicalURL)
+        let line = MarkdownTaskLineBuilder.makeLine(label: label, repositoryURL: linkURL)
         let output: String
         if existing.isEmpty {
             output = line + "\n"
@@ -117,5 +133,31 @@ public struct DailyMarkdownStore {
     private static func expandTilde(path: String) -> URL {
         let expanded = NSString(string: path).expandingTildeInPath
         return URL(filePath: expanded, directoryHint: .isDirectory)
+    }
+
+    private static func repositoryLikeDedupKey(from rawURL: String) -> String? {
+        guard var components = URLComponents(string: rawURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return nil
+        }
+        components.query = nil
+        components.fragment = nil
+        guard
+            let scheme = components.scheme?.lowercased(),
+            scheme == "https",
+            let host = components.host?.lowercased()
+        else {
+            return nil
+        }
+
+        let pathParts = components.path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard pathParts.count == 2 else { return nil }
+
+        let owner = pathParts[0].lowercased()
+        var repo = pathParts[1].lowercased()
+        if repo.hasSuffix(".git") {
+            repo = String(repo.dropLast(4))
+        }
+        guard !owner.isEmpty, !repo.isEmpty else { return nil }
+        return "\(host)/\(owner)/\(repo)"
     }
 }

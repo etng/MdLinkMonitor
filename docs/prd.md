@@ -4,7 +4,7 @@
 
 ## 1. Product Goal
 
-Build a macOS menu bar utility to collect GitHub repository links copied as Markdown links from clipboard, persist them into daily markdown notes, and trigger clone command automatically when enabled.
+Build a macOS menu bar utility to collect Markdown links copied from clipboard into daily notes, and automatically trigger clone for links recognized as Git repositories under configured domains.
 
 ## 2. Target Users
 
@@ -13,15 +13,18 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 ## 3. User Stories
 
 1. As a user, I want CBM to run in the menu bar and be easy to enable/disable.
-2. As a user, when I copy `[label](https://github.com/owner/repo)` I want it appended into daily notes.
-3. As a user, I want CBM to run `git c1 {repo}.git` automatically for accepted links.
-4. As a user, I want daily de-duplication so repeated copy does not create duplicate lines or clone actions on the same day.
+2. As a user, when I copy `[label](link)` I want it appended into daily notes.
+3. As a user, I want CBM to run `git c1 {repo}.git` automatically for recognized repository links.
+4. As a user, I want daily de-duplication so repeated copy does not create duplicate lines or duplicate clone actions on the same day.
 5. As a user, I want optional multi-link parsing for clipboard content with multiple Markdown links.
-6. As a user, I want to open and preview recent daily files from the menu.
-7. As a user, I want optional launch at login.
-8. As a user, I want Chinese UI by default and English as optional language.
-9. As a user, I want command line access to today's markdown path/content.
-10. As a user, I want in-app updates via Sparkle 2 (non-App Store).
+6. As a user, I want to configure repository domains (for example `github.com`, `gitlab.com`).
+7. As a user, I want a dedicated Settings window instead of placing all settings in the menu.
+8. As a user, I want to open and preview recent daily files from the menu.
+9. As a user, in today's preview I want a collapsible live log panel for troubleshooting.
+10. As a user, I want optional launch at login.
+11. As a user, I want Chinese UI by default and English as optional language.
+12. As a user, I want command line access to today's markdown path/content.
+13. As a user, I want in-app updates via Sparkle 2 (non-App Store).
 
 ## 4. Functional Requirements
 
@@ -38,11 +41,12 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 - Default mode accepts only exactly one markdown link in clipboard content.
 - If `Allow Multiple Links` is enabled, parse and process all markdown links in content.
 
-### 4.3 GitHub Repo URL Validation
+### 4.3 Repository URL Recognition
 
-- Accept only HTTPS GitHub repo URL shape: `https://github.com/owner/repo`.
+- Repository recognition uses a configurable domain allowlist.
+- URL must be HTTPS and match repository path shape: `/owner/repo`.
 - Ignore query parameters and hash fragments.
-- Normalize accepted URLs to canonical `https://github.com/owner/repo`.
+- Normalize accepted repository URLs to canonical `https://host/owner/repo`.
 - Optional trailing `/` and `.git` should be tolerated during parsing.
 
 ### 4.4 Persistence
@@ -50,34 +54,43 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 - Output base directory configurable.
 - Default output directory: `~/Documents/cbm`.
 - Daily filename: `links_yyyyMMdd.md`.
-- Append format: `* [ ] [label](https://github.com/owner/repo)`.
+- Append format: `* [ ] [label](link)`.
+- All detected markdown links are appended when not deduplicated, regardless of repository recognition.
 
 ### 4.5 De-duplication
 
 - Scope: daily only.
-- Unique key: normalized repository identity (`owner/repo`).
-- For same day, duplicate repo must not:
+- For repository links, unique key: normalized repository identity (`host/owner/repo`).
+- For non-repository links, unique key: normalized URL (query/hash removed).
+- For same day, duplicate links must not:
   - append duplicated markdown line
   - trigger duplicated clone command
 
 ### 4.6 Clone Command
 
-- On accepted and non-duplicate repo: run `git c1 {repo}.git`.
+- On recognized and non-duplicate repository links: run `git c1 {repo}.git`.
 - `{repo}` is normalized HTTPS URL without `.git` suffix.
+- Non-repository links must be appended but never cloned.
 
 ### 4.7 UI and Settings
 
-- Menu items:
+- Menu items include:
   - Enable Monitoring
+  - Open Settings
+  - Open Today
+  - Recent Files (direct list of latest 7 days)
+  - Check for Updates
+  - About
+- Settings window includes:
   - Enable Notifications
   - Allow Multiple Links
   - Launch at Login
   - Output Directory
   - Language (中文 / English)
-  - Recent Files (direct list of latest 7 days)
-  - About
+  - Repository Domains editor + apply action
 - Clicking a recent file opens markdown preview window.
 - Preview window has left sidebar for historical file browsing and right panel markdown rendering.
+- Today preview includes a default-collapsed live log panel that auto-refreshes from `logs_yyyyMMdd.log`.
 
 ### 4.8 CLI
 
@@ -88,18 +101,20 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 ### 4.9 Update Mechanism
 
 - Use Sparkle 2 for non-App Store update flow.
+- Update startup/check failures are silent in UI and written to daily logs.
 
 ### 4.10 Notifications and Logs
 
 - Support system notification feedback for key events:
-  - repo capture summary
+  - capture summary
   - clone success/failure summary
   - settings action result (where applicable)
-- Notifications must be user-toggleable in app settings.
+- Notifications must be user-toggleable in settings.
 - Write operational logs to daily file in same output directory:
   - filename format: `logs_yyyyMMdd.log`
   - include timestamp and level for each line
   - include explicit markdown append logs
+  - include debug event traces in debug builds
 
 ## 5. Non-Functional Requirements
 
@@ -116,13 +131,14 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 
 ## 7. Acceptance Criteria
 
-1. Enabling monitoring and copying a valid single markdown GitHub repo link appends line and triggers clone once.
-2. Copying same repo again on same day triggers neither additional line nor additional clone.
-3. Copying non-GitHub or non-repo links does nothing.
-4. With multi-link mode disabled, clipboard containing multiple links is ignored.
-5. With multi-link mode enabled, all valid repos in clipboard are processed with daily de-dup.
-6. CLI can output today's file path and content.
-7. Recent files are shown directly for latest 7 days and preview renders markdown.
-8. Preview window supports left sidebar history browsing and click-to-preview.
-9. Language can switch between Chinese and English.
-10. Sparkle updater can be initialized from app menu and check updates.
+1. Enabling monitoring and copying one valid markdown link appends one line once per day.
+2. Copying a recognized repository link on configured domains appends line and triggers clone once per day.
+3. Copying same recognized repository again on same day triggers neither additional line nor additional clone.
+4. Copying non-repository markdown link appends line but does not clone.
+5. With multi-link mode disabled, clipboard containing multiple links is ignored.
+6. With multi-link mode enabled, all markdown links are processed with daily dedup and only recognized repositories are cloned.
+7. CLI can output today's file path and content.
+8. Menu shows direct recent 7-day files; preview renders markdown with left sidebar browsing.
+9. Today preview shows default-collapsed live log panel and refreshes log content automatically.
+10. Language can switch between Chinese and English.
+11. Sparkle updater can be initialized from app menu and check updates silently on failure.

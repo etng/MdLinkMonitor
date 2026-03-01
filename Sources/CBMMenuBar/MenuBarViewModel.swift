@@ -65,6 +65,10 @@ final class MenuBarViewModel: ObservableObject {
         AppLocalizer.text(key, language: settings.language)
     }
 
+    var repositoryDomainsText: String {
+        settings.repositoryDomains.joined(separator: "\n")
+    }
+
     func updateMonitoringEnabled(_ enabled: Bool) {
         logEvent("UI toggle monitoring -> \(enabled)")
         updateSettings { state in
@@ -127,6 +131,18 @@ final class MenuBarViewModel: ObservableObject {
             state.language = language
         }
         let message = local("语言已切换", "Language updated")
+        setStatus(message)
+        logger.log(.info, message)
+    }
+
+    func updateRepositoryDomains(from text: String) {
+        let domains = AppSettings.parseDomains(from: text)
+        let fallback = domains.isEmpty ? ["github.com", "gitlab.com"] : domains
+
+        updateSettings { state in
+            state.repositoryDomains = fallback
+        }
+        let message = local("仓库域名配置已更新", "Repository domains updated") + ": \(fallback.joined(separator: ", "))"
         setStatus(message)
         logger.log(.info, message)
     }
@@ -196,6 +212,15 @@ final class MenuBarViewModel: ObservableObject {
         logger.log(.info, message)
     }
 
+    func openSettings() {
+        logEvent("UI action openSettings")
+        windowPresenter.showSettings(model: self, language: settings.language)
+
+        let message = local("已打开设置窗口", "Settings window opened")
+        setStatus(message)
+        logger.log(.info, message)
+    }
+
     func reloadRecentFiles() {
         let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
         recentFiles = (try? store.listRecentDailyFiles(limit: 30)) ?? []
@@ -225,6 +250,7 @@ final class MenuBarViewModel: ObservableObject {
         let result = orchestrator.process(
             clipboardText: text,
             allowMultipleLinks: settings.allowMultipleLinks,
+            repositoryDomains: Set(settings.repositoryDomains),
             store: store
         )
 
@@ -235,7 +261,7 @@ final class MenuBarViewModel: ObservableObject {
             } else if !settings.allowMultipleLinks && extractedLinks.count > 1 {
                 hint = local("检测到多链接，当前已忽略（可开启多链接模式）", "Multiple links ignored (enable multiple-link mode)")
             } else {
-                hint = local("链接不符合 GitHub 仓库格式", "Links are not valid GitHub repository URLs")
+                hint = local("已识别链接，但未命中已配置的仓库域名路径", "Links detected but no configured repository domains matched")
             }
             setStatus(hint)
             logger.log(.info, hint)
@@ -243,8 +269,8 @@ final class MenuBarViewModel: ObservableObject {
         }
 
         let summary = local(
-            "识别 \(result.totalCandidates) 个仓库，新增 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
-            "Detected \(result.totalCandidates) repos, added \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
+            "识别 \(result.totalCandidates) 个链接，写入 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
+            "Detected \(result.totalCandidates) links, appended \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
         )
 
         setStatus(summary)

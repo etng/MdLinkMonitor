@@ -17,6 +17,7 @@ func settingsStoreRoundTrip() {
         allowMultipleLinks: true,
         launchAtLogin: true,
         outputDirectoryPath: "~/Documents/cbm-custom",
+        repositoryDomains: ["github.com", "gitlab.com", "self-host.example.com"],
         language: .en
     )
 

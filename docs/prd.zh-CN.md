@@ -4,7 +4,7 @@ English version: [prd.md](./prd.md)
 
 ## 1. 产品目标
 
-构建一个 macOS 菜单栏工具：当用户在剪贴板中复制 Markdown 链接且链接为 GitHub 仓库时，自动写入当天 markdown 文件，并触发仓库克隆。
+构建一个 macOS 菜单栏工具：当用户复制 Markdown 链接时，自动写入当天 markdown 文件；当链接命中已配置的 Git 仓库域名与路径规则时，再自动触发克隆。
 
 ## 2. 目标用户
 
@@ -13,15 +13,18 @@ English version: [prd.md](./prd.md)
 ## 3. 用户故事
 
 1. 作为用户，我希望 CBM 常驻菜单栏，并且可随时启用/禁用。
-2. 作为用户，当我复制 `[label](https://github.com/owner/repo)` 时，能自动追加到当天笔记。
-3. 作为用户，我希望命中后自动执行 `git c1 {repo}.git`。
-4. 作为用户，我希望同一天内重复复制同仓库不会重复写入或重复 clone。
+2. 作为用户，当我复制 `[label](link)` 时，能自动追加到当天笔记。
+3. 作为用户，我希望命中仓库规则后自动执行 `git c1 {repo}.git`。
+4. 作为用户，我希望同一天内重复复制同一链接不会重复写入，仓库链接也不会重复 clone。
 5. 作为用户，我希望可选开启“多链接处理”模式。
-6. 作为用户，我希望在菜单里快速打开近期文件并预览。
-7. 作为用户，我希望可选开机启动。
-8. 作为用户，我希望默认中文界面，同时可切换英文。
-9. 作为用户，我希望通过 CLI 获取今天的 markdown 路径或内容。
-10. 作为用户，我希望使用 Sparkle 2 进行应用更新（非 App Store 分发）。
+6. 作为用户，我希望可配置仓库域名（例如 `github.com`、`gitlab.com`）。
+7. 作为用户，我希望把配置项放到独立设置窗口，而不是全挤在菜单里。
+8. 作为用户，我希望在菜单里快速打开近期文件并预览。
+9. 作为用户，我希望在“当天预览”里看到可折叠且自动刷新的日志面板方便排查。
+10. 作为用户，我希望可选开机启动。
+11. 作为用户，我希望默认中文界面，同时可切换英文。
+12. 作为用户，我希望通过 CLI 获取今天的 markdown 路径或内容。
+13. 作为用户，我希望使用 Sparkle 2 进行应用更新（非 App Store 分发）。
 
 ## 4. 功能需求
 
@@ -38,11 +41,12 @@ English version: [prd.md](./prd.md)
 - 默认仅处理“恰好一个链接”的内容。
 - 开启 `Allow Multiple Links` 后可处理多个链接。
 
-### 4.3 GitHub 仓库 URL 规则
+### 4.3 仓库 URL 识别规则
 
-- 仅接受 `https://github.com/owner/repo`。
+- 仓库识别基于可配置域名白名单。
+- 仅接受 HTTPS 且路径形态为 `/owner/repo` 的链接作为仓库。
 - 忽略 query 与 hash。
-- 规范化为 `https://github.com/owner/repo`。
+- 规范化为 `https://host/owner/repo`。
 - 兼容末尾 `/` 与 `.git`。
 
 ### 4.4 持久化
@@ -50,37 +54,46 @@ English version: [prd.md](./prd.md)
 - 输出目录可配置。
 - 默认目录：`~/Documents/cbm`。
 - 每日文件名：`links_yyyyMMdd.md`。
-- 追加行格式：`* [ ] [label](https://github.com/owner/repo)`。
+- 追加行格式：`* [ ] [label](link)`。
+- 只要是检测到的 Markdown 链接，在未重复时都写入 markdown（无论是否命中仓库规则）。
 
 ### 4.5 去重策略
 
 - 去重范围：当天。
-- 去重键：规范化仓库标识（`owner/repo`）。
-- 当天同仓库不得重复：
+- 仓库链接去重键：规范化仓库标识（`host/owner/repo`）。
+- 非仓库链接去重键：规范化 URL（去掉 query/hash）。
+- 当天同一去重键不得重复：
   - 写入 markdown
-  - 触发 clone
+  - 触发 clone（仅仓库链接适用）
 
 ### 4.6 克隆命令
 
-- 命中且非重复时执行：`git c1 {repo}.git`。
+- 命中仓库规则且非重复时执行：`git c1 {repo}.git`。
 - `{repo}` 为不带 `.git` 的规范化 HTTPS URL。
+- 非仓库链接只写入，不 clone。
 
 ### 4.7 UI 与设置
 
 - 菜单项包含：
   - Enable Monitoring
+  - Open Settings
+  - Open Today
+  - Recent Files（直接展示最近 7 天）
+  - Check for Updates
+  - About
+- 设置窗口包含：
   - Enable Notifications
   - Allow Multiple Links
   - Launch at Login
   - Output Directory
   - Language（中文 / English）
-  - Recent Files（直接展示最近 7 天）
-  - About
+  - Repository Domains 编辑与应用
 - 点击近期文件可打开预览窗口。
 - 预览窗口：
   - 左侧历史文件列表
   - 右侧 Markdown 渲染
   - 提供“复制 Markdown 原文”按钮
+- 当预览的是当天文件时，底部显示默认折叠的“今日日志”面板，并自动刷新 `logs_yyyyMMdd.log`。
 
 ### 4.8 CLI
 
@@ -91,17 +104,18 @@ English version: [prd.md](./prd.md)
 ### 4.9 更新机制
 
 - 使用 Sparkle 2（非 App Store）。
-- 更新失败默认静默，仅写日志。
+- 启动或手动检查更新失败默认静默，仅写日志。
 
 ### 4.10 通知与日志
 
 - 支持系统通知反馈（可开关）：
-  - 识别/写入/克隆结果
+  - 识别/写入/克隆结果摘要
   - 关键设置动作结果
 - 写入每日日志到输出目录：
   - 文件名：`logs_yyyyMMdd.log`
   - 每行包含时间戳、级别、消息
   - 包含 markdown 写入成功记录
+  - DEBUG 构建包含 UI 事件日志
 
 ## 5. 非功能需求
 
@@ -118,13 +132,14 @@ English version: [prd.md](./prd.md)
 
 ## 7. 验收标准
 
-1. 启用监控后，复制一个合法仓库链接：追加一行并执行一次 clone。
-2. 同日重复复制同仓库：不重复写入、不重复 clone。
-3. 非 GitHub 仓库链接：不处理。
-4. 多链接模式关闭时，多链接内容被忽略。
-5. 多链接模式开启时，所有合法仓库按当天去重处理。
-6. CLI 可输出今天路径与内容。
-7. 菜单直接显示最近 7 天文件，并可打开预览。
-8. 预览窗口可左侧浏览历史文件并右侧渲染 Markdown。
-9. 可中英文切换。
-10. Sparkle 可手动触发检查更新，失败静默记录日志。
+1. 启用监控后，复制一个合法 Markdown 链接：当天仅写入一次。
+2. 链接命中已配置仓库域名与路径规则时：写入并执行一次 clone。
+3. 同日重复复制同一命中仓库链接：不重复写入、不重复 clone。
+4. 非仓库 Markdown 链接：写入但不 clone。
+5. 多链接模式关闭时，多链接内容被忽略。
+6. 多链接模式开启时，所有链接按当天去重处理，只有命中仓库规则的链接会 clone。
+7. CLI 可输出今天路径与内容。
+8. 菜单直接显示最近 7 天文件，并可打开带左侧历史浏览的预览窗口。
+9. 当天预览窗口可看到默认折叠且自动刷新的今日日志面板。
+10. 可中英文切换。
+11. Sparkle 可手动触发检查更新，失败静默记录日志。
