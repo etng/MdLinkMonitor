@@ -10,8 +10,9 @@ ICON_PNG := $(BUILD_DIR)/icon-1024.png
 ICONSET_DIR := $(BUILD_DIR)/$(APP_NAME).iconset
 ICNS_PATH := $(BUILD_DIR)/AppIcon.icns
 INSTALL_DIR ?= /Applications
+REMOVE_DUPLICATE_COPY ?= 1
 
-.PHONY: help test run release icon app dmg install install-local release-tag clean
+.PHONY: help test run release icon app dmg install install-local refresh-launch-services release-tag clean
 
 help:
 	@echo "make test          # run unit tests"
@@ -22,6 +23,8 @@ help:
 	@echo "make dmg           # create dist/MdMonitor.dmg"
 	@echo "make install       # install app to /Applications (override INSTALL_DIR=...)"
 	@echo "make install-local # install app to ~/Applications"
+	@echo "make refresh-launch-services APP_PATH=/Applications/MdMonitor.app"
+	@echo "REMOVE_DUPLICATE_COPY=1 # move ~/Applications duplicate when installing to /Applications"
 	@echo "make release-tag VERSION=x.y.z # bump plist version, commit, tag and push"
 	@echo "make clean         # remove build artifacts"
 
@@ -89,12 +92,32 @@ dmg: app
 install: app
 	mkdir -p "$(INSTALL_DIR)"
 	ditto $(APP_DIR) "$(INSTALL_DIR)/$(APP_NAME).app"
+	@if [ "$(INSTALL_DIR)" = "/Applications" ] && [ "$(REMOVE_DUPLICATE_COPY)" = "1" ] && [ -d "$$HOME/Applications/$(APP_NAME).app" ]; then \
+		BACKUP_PATH="$$HOME/Applications/$(APP_NAME).app.backup_$$(date +%Y%m%d_%H%M%S)"; \
+		mv "$$HOME/Applications/$(APP_NAME).app" "$$BACKUP_PATH"; \
+		echo "Moved duplicate user-local app to $$BACKUP_PATH"; \
+	fi
+	@$(MAKE) refresh-launch-services APP_PATH="$(INSTALL_DIR)/$(APP_NAME).app"
 	@echo "Installed to $(INSTALL_DIR)/$(APP_NAME).app"
 
 install-local: app
 	mkdir -p "$$HOME/Applications"
 	ditto $(APP_DIR) "$$HOME/Applications/$(APP_NAME).app"
+	@$(MAKE) refresh-launch-services APP_PATH="$$HOME/Applications/$(APP_NAME).app"
+	@if [ -d "/Applications/$(APP_NAME).app" ] && [ "$(REMOVE_DUPLICATE_COPY)" = "1" ]; then \
+		echo "WARN: /Applications/$(APP_NAME).app also exists. Spotlight may open the wrong copy."; \
+		echo "      Keep only one install location to avoid LaunchServices conflict."; \
+	fi
 	@echo "Installed to $$HOME/Applications/$(APP_NAME).app"
+
+refresh-launch-services:
+	@LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"; \
+	if [ -x "$$LSREGISTER" ] && [ -d "$(APP_PATH)" ]; then \
+		"$$LSREGISTER" -f "$(APP_PATH)" >/dev/null 2>&1 || true; \
+		echo "Refreshed LaunchServices: $(APP_PATH)"; \
+	else \
+		echo "Skipped LaunchServices refresh: $(APP_PATH)"; \
+	fi
 
 release-tag:
 	@if [ -z "$(VERSION)" ]; then \
