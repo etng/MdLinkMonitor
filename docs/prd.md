@@ -71,7 +71,7 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 - On recognized and non-duplicate repository links: run configured clone command template.
 - Template must include `{repo}` placeholder.
 - `{repo}` is normalized HTTPS URL without `.git` suffix.
-- Default template: `git c1 {repo}.git`.
+- Default template: `git clone {repo}.git`.
 - Non-repository links must be appended but never cloned.
 
 ### 4.7 UI and Settings

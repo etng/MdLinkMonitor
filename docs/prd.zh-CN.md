@@ -71,7 +71,7 @@ English version: [prd.md](./prd.md)
 - 命中仓库规则且非重复时执行已配置的克隆命令模板。
 - 模板必须包含 `{repo}` 占位符。
 - `{repo}` 为不带 `.git` 的规范化 HTTPS URL。
-- 默认模板为：`git c1 {repo}.git`。
+- 默认模板为：`git clone {repo}.git`。
 - 非仓库链接只写入，不 clone。
 
 ### 4.7 UI 与设置

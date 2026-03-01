@@ -8,7 +8,7 @@ MdMonitor 是一个使用 Swift 开发的 macOS 菜单栏应用。
 
 1. 将去重后的任务行追加到当天 markdown 文件。
 2. 按可配置域名识别 Git 仓库链接（如 `github.com`、`gitlab.com`）。
-3. 对命中的仓库链接进行 URL 规范化（忽略 query/hash，处理末尾 `/` 和 `.git`）并执行可配置的克隆命令模板（默认：`git c1 {repo}.git`）。
+3. 对命中的仓库链接进行 URL 规范化（忽略 query/hash，处理末尾 `/` 和 `.git`）并执行可配置的克隆命令模板（默认：`git clone {repo}.git`）。
 
 ## 核心功能
 
@@ -21,7 +21,7 @@ MdMonitor 是一个使用 Swift 开发的 macOS 菜单栏应用。
 - 当天去重（写入与 clone 都去重）。
 - 非仓库 Markdown 链接也会写入（但不会 clone）。
 - 仓库识别支持可配置域名（默认 `github.com`、`gitlab.com`）。
-- 支持配置克隆命令模板（必须包含 `{repo}`，默认 `git c1 {repo}.git`）。
+- 支持配置克隆命令模板（必须包含 `{repo}`，默认 `git clone {repo}.git`）。
 - 支持可选多链接处理模式。
 - 菜单直接展示最近 7 天文件。
 - 设置项迁移到独立设置窗口。
