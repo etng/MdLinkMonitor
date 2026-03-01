@@ -67,6 +67,7 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 
 - Menu items:
   - Enable Monitoring
+  - Enable Notifications
   - Allow Multiple Links
   - Launch at Login
   - Output Directory
@@ -84,6 +85,17 @@ Build a macOS menu bar utility to collect GitHub repository links copied as Mark
 ### 4.9 Update Mechanism
 
 - Use Sparkle 2 for non-App Store update flow.
+
+### 4.10 Notifications and Logs
+
+- Support system notification feedback for key events:
+  - repo capture summary
+  - clone success/failure summary
+  - settings action result (where applicable)
+- Notifications must be user-toggleable in app settings.
+- Write operational logs to daily file in same output directory:
+  - filename format: `logs_yyyyMMdd.log`
+  - include timestamp and level for each line
 
 ## 5. Non-Functional Requirements
 

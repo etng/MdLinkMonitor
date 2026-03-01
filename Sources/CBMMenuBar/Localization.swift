@@ -4,6 +4,7 @@ import Foundation
 enum L10nKey {
     case appTitle
     case enableMonitoring
+    case enableNotifications
     case allowMultipleLinks
     case launchAtLogin
     case outputDirectory
@@ -27,6 +28,7 @@ enum AppLocalizer {
             switch key {
             case .appTitle: return "剪贴板仓库监视"
             case .enableMonitoring: return "启用监控"
+            case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
             case .launchAtLogin: return "开机启动"
             case .outputDirectory: return "输出目录"
@@ -46,6 +48,7 @@ enum AppLocalizer {
             switch key {
             case .appTitle: return "Clipboard Repo Monitor"
             case .enableMonitoring: return "Enable Monitoring"
+            case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
             case .launchAtLogin: return "Launch at Login"
             case .outputDirectory: return "Output Directory"

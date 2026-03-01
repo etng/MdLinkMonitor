@@ -13,6 +13,7 @@ func settingsStoreRoundTrip() {
     let store = UserDefaultsSettingsStore(defaults: defaults)
     let expected = AppSettings(
         monitoringEnabled: true,
+        notificationsEnabled: true,
         allowMultipleLinks: true,
         launchAtLogin: true,
         outputDirectoryPath: "~/Documents/cbm-custom",
