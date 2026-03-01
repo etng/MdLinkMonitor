@@ -88,6 +88,8 @@ hdiutil create \
 1. Open `MdMonitor.dmg`.
 2. Drag `MdMonitor.app` into `Applications`.
 3. Launch from `Applications` (first launch may require Gatekeeper confirmation).
+4. If you see "`Apple cannot verify...`", this build is currently not notarized with a paid Apple Developer account.
+5. For manual trust on your own Mac: right click `MdMonitor.app` -> `Open` -> confirm `Open` again.
 
 ### Release notes
 
@@ -98,6 +100,7 @@ hdiutil create \
   - `SPARKLE_PRIVATE_KEY`: base64 Ed25519 private seed (32-byte decoded)
   - `SPARKLE_PUBLIC_KEY`: base64 Ed25519 public key (`SUPublicEDKey` value in `Info.plist`)
 - For public distribution outside personal machines, add code-signing + notarization in your release pipeline.
+- Current project status: no paid Apple Developer account yet, so builds are unsigned/non-notarized for Gatekeeper trust.
 
 ## CLI
 
