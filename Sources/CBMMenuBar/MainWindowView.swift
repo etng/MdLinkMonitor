@@ -42,6 +42,9 @@ struct MainWindowView: View {
         .onReceive(refreshTimer) { _ in
             refreshLivePanels()
         }
+        .onChange(of: model.mainWindowNavigationToken) { _ in
+            applyNavigationRequest()
+        }
     }
 
     private var language: AppLanguage {
@@ -117,36 +120,47 @@ struct MainWindowView: View {
 
     private var previewPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                if model.showBackToCalendarInPreview {
-                    iconActionButton(
-                        systemName: "arrow.uturn.backward",
-                        title: model.text(.backToCalendar)
-                    ) {
-                        model.mainWindowPanel = .calendar
+            HStack {
+                HStack(spacing: 8) {
+                    if model.showBackToCalendarInPreview {
+                        iconActionButton(
+                            systemName: "arrow.uturn.backward",
+                            title: model.text(.backToCalendar)
+                        ) {
+                            model.mainWindowPanel = .calendar
+                        }
                     }
-                }
 
-                iconActionButton(
-                    systemName: "scope",
-                    title: model.text(.goToday),
-                    action: goToToday
-                )
+                    iconActionButton(
+                        systemName: "scope",
+                        title: model.text(.goToday),
+                        action: goToToday
+                    )
+                }
 
                 Spacer()
 
-                iconActionButton(
-                    systemName: "arrow.clockwise",
-                    title: model.text(.reload),
-                    action: reloadFilesAndContent
-                )
+                HStack(spacing: 8) {
+                    iconActionButton(
+                        systemName: "arrow.clockwise",
+                        title: model.text(.reload),
+                        action: reloadFilesAndContent
+                    )
 
-                iconActionButton(
-                    systemName: "doc.on.doc",
-                    title: model.text(.copyMarkdown),
-                    action: copyMarkdownRaw
-                )
-                .disabled(selectedFilePath == nil)
+                    iconActionButton(
+                        systemName: "doc.on.doc",
+                        title: model.text(.copyMarkdown),
+                        action: copyMarkdownRaw
+                    )
+                    .disabled(selectedFilePath == nil)
+                }
+            }
+            .overlay(alignment: .center) {
+                Text(currentPreviewDateText)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             ScrollViewReader { proxy in
@@ -327,6 +341,17 @@ struct MainWindowView: View {
         syncSelectedFileForSelectedDate()
     }
 
+    private var currentPreviewDateText: String {
+        let date = dateFromFilePath(currentFilePath ?? "") ?? selectedDate
+        let formatter = DateFormatter()
+        formatter.locale = language == .zhHans
+            ? Locale(identifier: "zh_Hans_CN")
+            : Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
     private func reloadFilesAndContent() {
         let store = DailyMarkdownStore(baseDirectoryPath: outputDirectoryPath)
         files = (try? store.listRecentDailyFiles(limit: nil)) ?? []
@@ -358,6 +383,22 @@ struct MainWindowView: View {
         selectedFilePath = nil
         content = ""
         todayLogContent = ""
+
+        applyNavigationRequest()
+    }
+
+    private func applyNavigationRequest() {
+        let targetPath = model.mainWindowTargetFilePath
+        guard !targetPath.isEmpty else { return }
+
+        if let date = dateFromFilePath(targetPath) {
+            selectedDate = date
+            syncSelectedFileForSelectedDate()
+            return
+        }
+
+        selectedDate = Date()
+        syncSelectedFileForSelectedDate()
     }
 
     private func syncSelectedFileForSelectedDate() {
@@ -526,6 +567,7 @@ private struct CalendarBoardView: View {
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.bordered)
+                .help(local("上个月", "Previous Month"))
 
                 Spacer()
 
@@ -542,6 +584,7 @@ private struct CalendarBoardView: View {
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.bordered)
+                .help(local("下个月", "Next Month"))
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
@@ -654,6 +697,7 @@ private struct CalendarBoardView: View {
             selectedDate = date
             onDoubleSelect(date)
         }
+        .help(dayTooltip(for: date, hasRecord: hasRecord, isToday: isToday))
     }
 
     private func backgroundColor(isToday: Bool, isSelected: Bool) -> Color {
@@ -685,5 +729,27 @@ private struct CalendarBoardView: View {
         let calendar = Calendar.autoupdatingCurrent
         let components = calendar.dateComponents([.year, .month], from: date)
         return calendar.date(from: components) ?? date
+    }
+
+    private func dayTooltip(for date: Date, hasRecord: Bool, isToday: Bool) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = language == .zhHans
+            ? Locale(identifier: "zh_Hans_CN")
+            : Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+
+        let title = formatter.string(from: date)
+        if hasRecord {
+            return local("\(title)（有记录，双击打开预览）", "\(title) (Has records, double-click to open preview)")
+        }
+        if isToday {
+            return local("\(title)（今天）", "\(title) (Today)")
+        }
+        return title
+    }
+
+    private func local(_ zhHans: String, _ en: String) -> String {
+        language == .zhHans ? zhHans : en
     }
 }
