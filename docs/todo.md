@@ -90,6 +90,8 @@
 - [x] 修复 menubar 点击历史日期后主窗口内容未切换
 - [x] 主窗口预览顶部增加当前文档日期展示
 - [x] 补齐图标悬浮提示（导航/日历切换/日期格）
+- [x] 配置 GitHub Actions：推送 `v+semVer` tag 自动打包并创建 Release
+- [x] Release 注释按“当前 tag 与上一个 tag 之间”的提交汇总生成
 
 ## 远期待办
 

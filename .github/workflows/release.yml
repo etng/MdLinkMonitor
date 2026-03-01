@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag format
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+            echo "Invalid tag format: $TAG"
+            echo "Expected: v<MAJOR>.<MINOR>.<PATCH> (SemVer)"
+            exit 1
+          fi
+
+      - name: Validate app version matches tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${TAG#v}"
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' packaging/Info.plist)"
+          if [[ "$APP_VERSION" != "$TAG_VERSION" ]]; then
+            echo "Tag version ($TAG_VERSION) does not match packaging/Info.plist version ($APP_VERSION)."
+            exit 1
+          fi
+
+      - name: Build distributable
+        run: |
+          set -euo pipefail
+          make dmg
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PREV_TAG=""
+          MERGED_REF="${TAG}^"
+          if ! git rev-parse --verify "${TAG}^" >/dev/null 2>&1; then
+            MERGED_REF="$TAG"
+          fi
+
+          while IFS= read -r candidate; do
+            if [[ "$candidate" == "$TAG" ]]; then
+              continue
+            fi
+            if [[ "$candidate" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+              PREV_TAG="$candidate"
+              break
+            fi
+          done < <(git tag --merged "$MERGED_REF" --sort=-creatordate || true)
+
+          if [[ -n "$PREV_TAG" ]]; then
+            RANGE="${PREV_TAG}..${TAG}"
+          else
+            RANGE="$TAG"
+          fi
+
+          NOTES_FILE="dist/release-notes.md"
+          mkdir -p dist
+
+          {
+            echo "## Release ${TAG}"
+            echo
+            if [[ -n "$PREV_TAG" ]]; then
+              echo "- Range: \\`${PREV_TAG}..${TAG}\\`"
+              echo "- Compare: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+            else
+              echo "- Range: first tagged release"
+              echo "- Compare: https://github.com/${REPO}/releases/tag/${TAG}"
+            fi
+            echo
+            echo "## Changes"
+          } > "$NOTES_FILE"
+
+          LOG_LINES=$(git log --no-merges --pretty='- %s (%h)' "$RANGE" || true)
+          if [[ -z "${LOG_LINES}" ]]; then
+            echo "- No commits found in this range" >> "$NOTES_FILE"
+          else
+            echo "$LOG_LINES" >> "$NOTES_FILE"
+          fi
+
+          echo "Generated release notes:"
+          cat "$NOTES_FILE"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body_path: dist/release-notes.md
+          files: |
+            dist/MdMonitor.dmg
+            dist/MdMonitor.zip
+          fail_on_unmatched_files: false
