@@ -9,6 +9,8 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var statusText: String
     @Published var mainWindowPanel: MainWindowPanel = .preview
     @Published var showBackToCalendarInPreview = false
+    @Published var mainWindowTargetFilePath: String = ""
+    @Published var mainWindowNavigationToken = UUID()
 
     private let settingsStore: any SettingsStoring
     private let launchAtLoginManager: any LaunchAtLoginManaging
@@ -225,6 +227,8 @@ final class MenuBarViewModel: ObservableObject {
 
     func openMainWindow(filePath: String, panel: MainWindowPanel = .preview) {
         logEvent("UI action openMainWindow path=\(filePath), panel=\(panel)")
+        mainWindowTargetFilePath = filePath
+        mainWindowNavigationToken = UUID()
         mainWindowPanel = panel
         if panel != .preview {
             showBackToCalendarInPreview = false
