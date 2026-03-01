@@ -6,14 +6,14 @@ protocol UserNotifying {
 }
 
 final class UserNotificationManager: UserNotifying {
-    private let center: UNUserNotificationCenter
-
-    init(center: UNUserNotificationCenter = .current()) {
-        self.center = center
-    }
+    init() {}
 
     func notify(title: String, body: String) {
-        let center = self.center
+        guard Self.canUseSystemNotifications else {
+            return
+        }
+
+        let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             switch settings.authorizationStatus {
             case .authorized, .provisional, .ephemeral:
@@ -29,6 +29,11 @@ final class UserNotificationManager: UserNotifying {
                 break
             }
         }
+    }
+
+    private static var canUseSystemNotifications: Bool {
+        let url = Bundle.main.bundleURL
+        return url.pathExtension.lowercased() == "app" && Bundle.main.bundleIdentifier != nil
     }
 
     private static func enqueue(center: UNUserNotificationCenter, title: String, body: String) {
