@@ -1,0 +1,48 @@
+import Testing
+@testable import CBMCore
+
+private final class MockRunner: CommandRunning {
+    var recordedCommand: String?
+    var recordedArguments: [String] = []
+    var result = CommandExecutionResult(exitCode: 0, standardOutput: "ok", standardError: "")
+
+    func run(command: String, arguments: [String]) -> CommandExecutionResult {
+        recordedCommand = command
+        recordedArguments = arguments
+        return result
+    }
+}
+
+@Test
+func cloneExecutorUsesGitC1WithCanonicalCloneURL() {
+    let runner = MockRunner()
+    let logger = InMemoryLogger()
+    let executor = GitC1CloneExecutor(commandRunner: runner, logger: logger)
+    let repo = GitHubRepository(owner: "owner", name: "repo")
+
+    let result = executor.clone(repository: repo)
+
+    #expect(result.isSuccess)
+    #expect(runner.recordedCommand == "/usr/bin/env")
+    #expect(runner.recordedArguments == ["git", "c1", "https://github.com/owner/repo.git"])
+    #expect(logger.entries.count == 2)
+    #expect(logger.entries[0].message.contains("Start clone"))
+    #expect(logger.entries[1].message.contains("Clone success"))
+}
+
+@Test
+func cloneExecutorLogsFailure() {
+    let runner = MockRunner()
+    runner.result = CommandExecutionResult(exitCode: 1, standardOutput: "", standardError: "not found")
+
+    let logger = InMemoryLogger()
+    let executor = GitC1CloneExecutor(commandRunner: runner, logger: logger)
+    let repo = GitHubRepository(owner: "owner", name: "repo")
+
+    let result = executor.clone(repository: repo)
+
+    #expect(!result.isSuccess)
+    #expect(logger.entries.count == 2)
+    #expect(logger.entries[1].level == .error)
+    #expect(logger.entries[1].message.contains("not found"))
+}
