@@ -67,12 +67,19 @@ if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; t
 fi
 
 CURRENT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${PLIST_PATH}" 2>/dev/null || true)"
+CURRENT_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${PLIST_PATH}" 2>/dev/null || true)"
 cp "${PLIST_PATH}" "${PLIST_BACKUP}"
 
 if [[ -z "${CURRENT_VERSION}" ]]; then
   /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${VERSION}" "${PLIST_PATH}"
 elif [[ "${CURRENT_VERSION}" != "${VERSION}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${PLIST_PATH}"
+fi
+
+if [[ -z "${CURRENT_BUILD_VERSION}" ]]; then
+  /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${VERSION}" "${PLIST_PATH}"
+elif [[ "${CURRENT_BUILD_VERSION}" != "${VERSION}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION}" "${PLIST_PATH}"
 fi
 
 if ! git diff --quiet -- "${PLIST_PATH}"; then

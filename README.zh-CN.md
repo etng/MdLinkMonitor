@@ -91,6 +91,9 @@ hdiutil create \
 - 当前版本 clone 命令固定为 `git c1 {repo}.git`。
 - 去重范围是“当天内去重”。
 - Sparkle 更新需要正确签名与 appcast 配置。
+- Sparkle Feed URL：`https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml`。
+- 推送 `v<semver>` tag 会触发 `.github/workflows/release.yml`，自动构建并上传 `appcast.xml` 到 Release。
+- 可用 `make release-tag VERSION=x.y.z` 自动更新 plist 版本、提交、打 tag 并推送。
 - 更新失败会静默处理，仅写入当日日志。
 - 开发环境下 `Launch at Login` 可能因签名/Bundle 限制失败。
 - 使用 `swift run MdMonitor` 启动时，系统通知会自动禁用（避免非 .app 环境崩溃）。
