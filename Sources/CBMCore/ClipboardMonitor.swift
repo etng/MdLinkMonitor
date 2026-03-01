@@ -22,7 +22,7 @@ public struct SystemClipboardProvider: ClipboardTextProviding {
     }
 }
 
-public final class ClipboardMonitor {
+public final class ClipboardMonitor: NSObject {
     private let provider: any ClipboardTextProviding
     private let interval: TimeInterval
     private let onClipboardText: (String) -> Void
@@ -41,6 +41,7 @@ public final class ClipboardMonitor {
         self.interval = interval
         self.onClipboardText = onClipboardText
         self.lastChangeCount = provider.changeCount
+        super.init()
     }
 
     deinit {
@@ -52,9 +53,9 @@ public final class ClipboardMonitor {
             return
         }
 
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
+        let timer = Timer(timeInterval: interval, target: self, selector: #selector(handleTimer), userInfo: nil, repeats: true)
+        self.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     public func stop() {
@@ -78,5 +79,10 @@ public final class ClipboardMonitor {
         }
 
         onClipboardText(text)
+    }
+
+    @objc
+    private func handleTimer() {
+        tick()
     }
 }
