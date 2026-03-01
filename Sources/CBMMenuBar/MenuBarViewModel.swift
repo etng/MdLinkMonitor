@@ -227,10 +227,7 @@ final class MenuBarViewModel: ObservableObject {
         logEvent("UI action openPreview path=\(filePath)")
         windowPresenter.showPreview(
             initialFilePath: filePath,
-            outputDirectoryPath: settings.outputDirectoryPath,
-            language: settings.language,
-            markdownFontSize: settings.previewMarkdownFontSize,
-            calendarScale: settings.previewCalendarScale
+            model: self
         )
 
         let message = local("已打开预览窗口", "Preview window opened")
