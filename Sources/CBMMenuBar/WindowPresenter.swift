@@ -75,6 +75,13 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
 
     private func activateAndShow(_ window: NSWindow) {
         NSApp.activate(ignoringOtherApps: true)
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        if !window.isVisible {
+            window.orderFront(nil)
+        }
+        window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
     }
 }
