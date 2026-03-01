@@ -17,16 +17,20 @@ public struct AppSettings: Equatable, Sendable {
     public var notificationsEnabled: Bool
     public var allowMultipleLinks: Bool
     public var showDockIcon: Bool
+    public var previewMarkdownFontSize: Double
+    public var previewCalendarScale: Double
     public var launchAtLogin: Bool
     public var outputDirectoryPath: String
     public var repositoryDomains: [String]
     public var language: AppLanguage
 
     public init(
-        monitoringEnabled: Bool = false,
+        monitoringEnabled: Bool = true,
         notificationsEnabled: Bool = true,
         allowMultipleLinks: Bool = false,
         showDockIcon: Bool = true,
+        previewMarkdownFontSize: Double = 16.0,
+        previewCalendarScale: Double = 1.15,
         launchAtLogin: Bool = false,
         outputDirectoryPath: String = DailyMarkdownStore.defaultDirectoryPath,
         repositoryDomains: [String] = ["github.com", "gitlab.com"],
@@ -36,6 +40,8 @@ public struct AppSettings: Equatable, Sendable {
         self.notificationsEnabled = notificationsEnabled
         self.allowMultipleLinks = allowMultipleLinks
         self.showDockIcon = showDockIcon
+        self.previewMarkdownFontSize = max(12, min(previewMarkdownFontSize, 28))
+        self.previewCalendarScale = max(0.9, min(previewCalendarScale, 1.8))
         self.launchAtLogin = launchAtLogin
         self.outputDirectoryPath = outputDirectoryPath
         self.repositoryDomains = Self.normalizeDomains(repositoryDomains)
@@ -69,6 +75,8 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let notificationsEnabled = "cbm.notificationsEnabled"
         static let allowMultipleLinks = "cbm.allowMultipleLinks"
         static let showDockIcon = "cbm.showDockIcon"
+        static let previewMarkdownFontSize = "cbm.previewMarkdownFontSize"
+        static let previewCalendarScale = "cbm.previewCalendarScale"
         static let launchAtLogin = "cbm.launchAtLogin"
         static let outputDirectoryPath = "cbm.outputDirectoryPath"
         static let repositoryDomains = "cbm.repositoryDomains"
@@ -87,10 +95,12 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         let domainsRaw = defaults.string(forKey: Keys.repositoryDomains) ?? "github.com,gitlab.com"
 
         return AppSettings(
-            monitoringEnabled: defaults.object(forKey: Keys.monitoringEnabled) as? Bool ?? false,
+            monitoringEnabled: defaults.object(forKey: Keys.monitoringEnabled) as? Bool ?? true,
             notificationsEnabled: defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true,
             allowMultipleLinks: defaults.object(forKey: Keys.allowMultipleLinks) as? Bool ?? false,
             showDockIcon: defaults.object(forKey: Keys.showDockIcon) as? Bool ?? true,
+            previewMarkdownFontSize: defaults.object(forKey: Keys.previewMarkdownFontSize) as? Double ?? 16.0,
+            previewCalendarScale: defaults.object(forKey: Keys.previewCalendarScale) as? Double ?? 1.15,
             launchAtLogin: defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false,
             outputDirectoryPath: defaults.string(forKey: Keys.outputDirectoryPath) ?? DailyMarkdownStore.defaultDirectoryPath,
             repositoryDomains: AppSettings.parseDomains(from: domainsRaw),
@@ -103,6 +113,8 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.notificationsEnabled, forKey: Keys.notificationsEnabled)
         defaults.set(settings.allowMultipleLinks, forKey: Keys.allowMultipleLinks)
         defaults.set(settings.showDockIcon, forKey: Keys.showDockIcon)
+        defaults.set(settings.previewMarkdownFontSize, forKey: Keys.previewMarkdownFontSize)
+        defaults.set(settings.previewCalendarScale, forKey: Keys.previewCalendarScale)
         defaults.set(settings.launchAtLogin, forKey: Keys.launchAtLogin)
         defaults.set(settings.outputDirectoryPath, forKey: Keys.outputDirectoryPath)
         defaults.set(settings.repositoryDomains.joined(separator: ","), forKey: Keys.repositoryDomains)

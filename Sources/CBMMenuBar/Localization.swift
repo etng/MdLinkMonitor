@@ -7,6 +7,8 @@ enum L10nKey {
     case enableNotifications
     case allowMultipleLinks
     case showDockIcon
+    case previewMarkdownFontSize
+    case previewCalendarScale
     case launchAtLogin
     case outputDirectory
     case chooseDirectory
@@ -27,6 +29,7 @@ enum L10nKey {
     case copied
     case historyFiles
     case calendar
+    case goToday
     case emptyContent
     case noFileForDate
     case todayLogs
@@ -45,6 +48,8 @@ enum AppLocalizer {
             case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
             case .showDockIcon: return "显示 Dock 图标"
+            case .previewMarkdownFontSize: return "预览 Markdown 字号"
+            case .previewCalendarScale: return "日历缩放"
             case .launchAtLogin: return "开机启动"
             case .outputDirectory: return "输出目录"
             case .chooseDirectory: return "选择目录"
@@ -65,6 +70,7 @@ enum AppLocalizer {
             case .copied: return "已复制"
             case .historyFiles: return "历史文件"
             case .calendar: return "日历"
+            case .goToday: return "回到今天"
             case .emptyContent: return "该文件暂无内容"
             case .noFileForDate: return "所选日期暂无记录"
             case .todayLogs: return "今日日志（自动刷新）"
@@ -79,6 +85,8 @@ enum AppLocalizer {
             case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
             case .showDockIcon: return "Show Dock Icon"
+            case .previewMarkdownFontSize: return "Preview Markdown Font Size"
+            case .previewCalendarScale: return "Calendar Scale"
             case .launchAtLogin: return "Launch at Login"
             case .outputDirectory: return "Output Directory"
             case .chooseDirectory: return "Choose Directory"
@@ -99,6 +107,7 @@ enum AppLocalizer {
             case .copied: return "Copied"
             case .historyFiles: return "History"
             case .calendar: return "Calendar"
+            case .goToday: return "Today"
             case .emptyContent: return "No content in this file"
             case .noFileForDate: return "No record for selected date"
             case .todayLogs: return "Today's Logs (Auto Refresh)"

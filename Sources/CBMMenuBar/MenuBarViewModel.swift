@@ -70,6 +70,14 @@ final class MenuBarViewModel: ObservableObject {
         settings.repositoryDomains.joined(separator: "\n")
     }
 
+    var todayMenuDateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = settings.language == .zhHans ? Locale(identifier: "zh_Hans_CN") : Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: Date())
+    }
+
     func updateMonitoringEnabled(_ enabled: Bool) {
         logEvent("UI toggle monitoring -> \(enabled)")
         updateSettings { state in
@@ -136,6 +144,20 @@ final class MenuBarViewModel: ObservableObject {
         let message = enabled ? local("Dock 图标已显示", "Dock icon enabled") : local("Dock 图标已隐藏", "Dock icon hidden")
         setStatus(message)
         logger.log(.info, message)
+    }
+
+    func updatePreviewMarkdownFontSize(_ size: Double) {
+        let normalized = max(12, min(size, 28))
+        updateSettings { state in
+            state.previewMarkdownFontSize = normalized
+        }
+    }
+
+    func updatePreviewCalendarScale(_ scale: Double) {
+        let normalized = max(0.9, min(scale, 1.8))
+        updateSettings { state in
+            state.previewCalendarScale = normalized
+        }
     }
 
     func updateLanguage(_ language: AppLanguage) {
@@ -206,7 +228,9 @@ final class MenuBarViewModel: ObservableObject {
         windowPresenter.showPreview(
             initialFilePath: filePath,
             outputDirectoryPath: settings.outputDirectoryPath,
-            language: settings.language
+            language: settings.language,
+            markdownFontSize: settings.previewMarkdownFontSize,
+            calendarScale: settings.previewCalendarScale
         )
 
         let message = local("已打开预览窗口", "Preview window opened")
