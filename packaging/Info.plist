@@ -28,5 +28,7 @@
 	<string>NSApplication</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>7GSFiaWGvdhwCq3UI0RvIbAQjCbYjVX9J3SJUcxGwt4=</string>
 </dict>
 </plist>

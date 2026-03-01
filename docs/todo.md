@@ -97,6 +97,8 @@
 - [x] 修复 Release workflow 的 Swift/Xcode 版本选择，兼容 swift-tools-version 6.2
 - [x] 为 Sparkle 增加 appcast.xml 生成与 release 上传
 - [x] 配置应用 Feed URL，并统一版本字段用于 Sparkle 比较
+- [x] Sparkle 发布链路接入 EdDSA 签名（release 资产签名 + appcast 注入）
+- [x] GitHub Secrets 接入 Sparkle 公私钥并校验 Info.plist 公钥一致性
 
 ## 远期待办
 

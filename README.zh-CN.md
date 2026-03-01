@@ -94,6 +94,9 @@ hdiutil create \
 - Sparkle Feed URL：`https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml`。
 - 推送 `v<semver>` tag 会触发 `.github/workflows/release.yml`，自动构建并上传 `appcast.xml` 到 Release。
 - 可用 `make release-tag VERSION=x.y.z` 自动更新 plist 版本、提交、打 tag 并推送。
+- 首次启用 Sparkle 签名前，需要配置仓库 Secrets：
+  - `SPARKLE_PRIVATE_KEY`：base64 编码的 Ed25519 私钥种子（解码后 32 字节）
+  - `SPARKLE_PUBLIC_KEY`：base64 编码公钥（与 `Info.plist` 中 `SUPublicEDKey` 一致）
 - 更新失败会静默处理，仅写入当日日志。
 - 开发环境下 `Launch at Login` 可能因签名/Bundle 限制失败。
 - 使用 `swift run MdMonitor` 启动时，系统通知会自动禁用（避免非 .app 环境崩溃）。

@@ -94,6 +94,9 @@ hdiutil create \
 - Sparkle feed URL is `https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml`.
 - Tag push `v<semver>` triggers `.github/workflows/release.yml` to build artifacts and upload `appcast.xml` into the release.
 - Use `make release-tag VERSION=x.y.z` to sync plist version, commit, tag, and push.
+- Configure repository secrets before first Sparkle release:
+  - `SPARKLE_PRIVATE_KEY`: base64 Ed25519 private seed (32-byte decoded)
+  - `SPARKLE_PUBLIC_KEY`: base64 Ed25519 public key (`SUPublicEDKey` value in `Info.plist`)
 - For public distribution outside personal machines, add code-signing + notarization in your release pipeline.
 
 ## CLI
