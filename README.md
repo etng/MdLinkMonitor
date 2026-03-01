@@ -57,6 +57,7 @@ When monitoring is enabled, it watches clipboard text and handles Markdown links
 - Daily dedup means duplicates are blocked only within the same day.
 - Sparkle update checks require proper app signing and appcast setup in distribution.
 - In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
+- When started via `swift run CBMMenuBar`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
 
 ## Current Status
 
