@@ -99,6 +99,7 @@
 - [x] 配置应用 Feed URL，并统一版本字段用于 Sparkle 比较
 - [x] Sparkle 发布链路接入 EdDSA 签名（release 资产签名 + appcast 注入）
 - [x] GitHub Secrets 接入 Sparkle 公私钥并校验 Info.plist 公钥一致性
+- [x] 文档补充未付费开发者账号场景下的手动信任安装说明（中英文）
 
 ## 远期待办
 

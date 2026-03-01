@@ -73,6 +73,14 @@ hdiutil create \
   dist/MdMonitor.dmg
 ```
 
+## 安装与信任（当前状态）
+
+当前项目暂未接入付费 Apple Developer 账号的签名与公证流程。
+
+- 安装时若出现“Apple 无法验证 `MdMonitor.app` 是否包含恶意软件”的提示，属于未公证构建的预期行为。
+- 在你自己的 Mac 上可手动信任：右键 `MdMonitor.app` -> `打开` -> 再次确认 `打开`。
+- 面向公开用户分发时，建议后续补齐 `Developer ID` 签名 + notarization + stapling。
+
 ## CLI
 
 - `cbm today --path`：输出今天 markdown 文件路径。
@@ -97,6 +105,7 @@ hdiutil create \
 - 首次启用 Sparkle 签名前，需要配置仓库 Secrets：
   - `SPARKLE_PRIVATE_KEY`：base64 编码的 Ed25519 私钥种子（解码后 32 字节）
   - `SPARKLE_PUBLIC_KEY`：base64 编码公钥（与 `Info.plist` 中 `SUPublicEDKey` 一致）
+- 当前项目状态：尚未使用付费开发者账号完成 Apple 公证，因此 Gatekeeper 信任需用户手动确认。
 - 更新失败会静默处理，仅写入当日日志。
 - 开发环境下 `Launch at Login` 可能因签名/Bundle 限制失败。
 - 使用 `swift run MdMonitor` 启动时，系统通知会自动禁用（避免非 .app 环境崩溃）。
