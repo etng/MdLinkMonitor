@@ -75,8 +75,9 @@ app: release icon
 
 dmg: app
 	mkdir -p $(BUILD_DIR)/dmg-root $(DIST_DIR)
-	rm -rf $(BUILD_DIR)/dmg-root/$(APP_NAME).app $(DMG_PATH)
+	rm -rf $(BUILD_DIR)/dmg-root/$(APP_NAME).app $(BUILD_DIR)/dmg-root/Applications $(DMG_PATH)
 	cp -R $(APP_DIR) $(BUILD_DIR)/dmg-root/$(APP_NAME).app
+	ln -s /Applications $(BUILD_DIR)/dmg-root/Applications
 	@if hdiutil create -volname "$(APP_NAME)" -srcfolder $(BUILD_DIR)/dmg-root -ov -format UDZO $(DMG_PATH); then \
 		echo "Generated $(DMG_PATH)"; \
 	else \

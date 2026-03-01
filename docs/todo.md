@@ -6,7 +6,7 @@
 
 ## 近期在办
 
-- [ ] （暂无）
+- [ ] GitHub Actions 增加 DMG 结构校验并执行 minor 版本发布验证
 
 ## 近期已办
 
@@ -100,6 +100,8 @@
 - [x] Sparkle 发布链路接入 EdDSA 签名（release 资产签名 + appcast 注入）
 - [x] GitHub Secrets 接入 Sparkle 公私钥并校验 Info.plist 公钥一致性
 - [x] 文档补充未付费开发者账号场景下的手动信任安装说明（中英文）
+- [x] DMG 安装镜像改造为拖拽安装体验（含 `Applications` 快捷方式）
+- [x] README 中补充 DMG 拖拽安装形态说明（中英文）
 
 ## 远期待办
 

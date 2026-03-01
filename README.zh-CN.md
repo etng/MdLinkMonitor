@@ -59,6 +59,7 @@ make install-local # 安装到 ~/Applications
 
 若当前环境不支持 `hdiutil`，`make dmg` 会自动回退生成 `dist/MdMonitor.zip`。
 `make app` 会自动把 `Sparkle.framework` 嵌入到 `Contents/Frameworks`。
+`make dmg` 现在会在镜像里包含 `Applications` 快捷方式，用户可直接拖拽安装。
 
 如果你已经有导出的 `.app`，也可以手工打包 `.dmg`：
 
