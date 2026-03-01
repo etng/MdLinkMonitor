@@ -3,7 +3,6 @@ import SwiftUI
 
 struct MenuBarContentView: View {
     @ObservedObject var model: MenuBarViewModel
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -70,8 +69,7 @@ struct MenuBarContentView: View {
                     ForEach(model.recentFiles, id: \.path) { file in
                         Button(file.lastPathComponent) {
                             runAfterMenuDismiss {
-                                NSApp.activate(ignoringOtherApps: true)
-                                openWindow(id: "preview", value: file.path(percentEncoded: false))
+                                model.openPreview(filePath: file.path(percentEncoded: false))
                             }
                         }
                     }
@@ -80,8 +78,7 @@ struct MenuBarContentView: View {
 
             Button(model.text(.openToday)) {
                 runAfterMenuDismiss {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openWindow(id: "preview", value: model.openTodayFilePath())
+                    model.openTodayPreview()
                 }
             }
 
@@ -95,8 +92,7 @@ struct MenuBarContentView: View {
 
             Button(model.text(.about)) {
                 runAfterMenuDismiss {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openWindow(id: "about")
+                    model.openAbout()
                 }
             }
 

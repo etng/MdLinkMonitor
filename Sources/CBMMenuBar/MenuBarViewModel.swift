@@ -12,6 +12,7 @@ final class MenuBarViewModel: ObservableObject {
     private let launchAtLoginManager: any LaunchAtLoginManaging
     private let appUpdater: any AppUpdaterManaging
     private let notifier: any UserNotifying
+    private let windowPresenter: WindowPresenter
 
     private let memoryLogger: InMemoryLogger
     private let fileLogger: DailyFileLogger
@@ -24,12 +25,14 @@ final class MenuBarViewModel: ObservableObject {
         settingsStore: any SettingsStoring = UserDefaultsSettingsStore(),
         launchAtLoginManager: any LaunchAtLoginManaging = LaunchAtLoginManager(),
         appUpdater: any AppUpdaterManaging = SparkleUpdaterManager(),
-        notifier: any UserNotifying = UserNotificationManager()
+        notifier: any UserNotifying = UserNotificationManager(),
+        windowPresenter: WindowPresenter = WindowPresenter()
     ) {
         self.settingsStore = settingsStore
         self.launchAtLoginManager = launchAtLoginManager
         self.appUpdater = appUpdater
         self.notifier = notifier
+        self.windowPresenter = windowPresenter
 
         let loaded = settingsStore.load()
         self.settings = loaded
@@ -54,6 +57,7 @@ final class MenuBarViewModel: ObservableObject {
         self.monitor = monitor
 
         logger.log(.info, "App started")
+        logEvent("MenuBarViewModel initialized, monitoring=\(loaded.monitoringEnabled)")
         reloadRecentFiles()
     }
 
@@ -62,6 +66,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateMonitoringEnabled(_ enabled: Bool) {
+        logEvent("UI toggle monitoring -> \(enabled)")
         updateSettings { state in
             state.monitoringEnabled = enabled
         }
@@ -74,6 +79,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateNotificationsEnabled(_ enabled: Bool) {
+        logEvent("UI toggle notifications -> \(enabled)")
         updateSettings { state in
             state.notificationsEnabled = enabled
         }
@@ -84,6 +90,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateAllowMultipleLinks(_ enabled: Bool) {
+        logEvent("UI toggle allowMultipleLinks -> \(enabled)")
         updateSettings { state in
             state.allowMultipleLinks = enabled
         }
@@ -95,6 +102,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateLaunchAtLogin(_ enabled: Bool) {
+        logEvent("UI toggle launchAtLogin -> \(enabled)")
         NSApp.activate(ignoringOtherApps: true)
 
         if launchAtLoginManager.setEnabled(enabled) {
@@ -114,6 +122,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func updateLanguage(_ language: AppLanguage) {
+        logEvent("UI change language -> \(language.rawValue)")
         updateSettings { state in
             state.language = language
         }
@@ -123,6 +132,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func chooseOutputDirectory() {
+        logEvent("UI action chooseOutputDirectory")
         NSApp.activate(ignoringOtherApps: true)
 
         let panel = NSOpenPanel()
@@ -156,19 +166,47 @@ final class MenuBarViewModel: ObservableObject {
         return store.todayFileURL().path(percentEncoded: false)
     }
 
+    func openTodayPreview() {
+        let path = openTodayFilePath()
+        logEvent("UI action openTodayPreview path=\(path)")
+        openPreview(filePath: path)
+    }
+
+    func openPreview(filePath: String) {
+        logEvent("UI action openPreview path=\(filePath)")
+        windowPresenter.showPreview(filePath: filePath, language: settings.language)
+
+        let message = local("已打开预览窗口", "Preview window opened")
+        setStatus(message)
+        logger.log(.info, message + ": \(filePath)")
+    }
+
+    func openAbout() {
+        logEvent("UI action openAbout")
+        windowPresenter.showAbout(language: settings.language)
+
+        let message = local("已打开关于窗口", "About window opened")
+        setStatus(message)
+        logger.log(.info, message)
+    }
+
     func reloadRecentFiles() {
         let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
         recentFiles = (try? store.listRecentDailyFiles(limit: 30)) ?? []
     }
 
     func checkForUpdates() {
+        logEvent("UI action checkForUpdates")
         NSApp.activate(ignoringOtherApps: true)
-        appUpdater.checkForUpdates()
-
-        let message = local("已发起更新检查", "Update check requested")
-        setStatus(message)
-        logger.log(.info, message)
-        notifyIfEnabled(message)
+        switch appUpdater.checkForUpdates() {
+        case .requested:
+            let message = local("已发起更新检查", "Update check requested")
+            setStatus(message)
+            logger.log(.info, message)
+            notifyIfEnabled(message)
+        case .skipped(let reason):
+            logger.log(.warning, "Update check skipped silently: \(reason)")
+        }
     }
 
     private func handleClipboardText(_ text: String) {
@@ -234,5 +272,10 @@ final class MenuBarViewModel: ObservableObject {
 
     private func local(_ zhHans: String, _ en: String) -> String {
         settings.language == .zhHans ? zhHans : en
+    }
+
+    private func logEvent(_ message: String) {
+        guard Diagnostics.verboseEventLogging else { return }
+        logger.log(.info, "[event] \(message)")
     }
 }
