@@ -23,12 +23,21 @@ public protocol Logging: AnyObject {
 }
 
 public final class InMemoryLogger: Logging {
-    public private(set) var entries: [LogEntry] = []
+    private var storage: [LogEntry] = []
+    private let lock = NSLock()
+
+    public var entries: [LogEntry] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
 
     public init() {}
 
     public func log(_ level: LogLevel, _ message: String) {
-        entries.append(LogEntry(level: level, message: message))
+        lock.lock()
+        storage.append(LogEntry(level: level, message: message))
+        lock.unlock()
     }
 }
 

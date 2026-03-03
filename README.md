@@ -1,161 +1,74 @@
 # MdMonitor
 
-Chinese version: [README.zh-CN.md](./README.zh-CN.md)
+中文说明: [README.zh-CN.md](./README.zh-CN.md)
 
-MdMonitor is a macOS menu bar app written in Swift.
+MdMonitor is a macOS menu bar app for collecting Markdown links from your clipboard.
 
-When monitoring is enabled, it watches clipboard text and handles Markdown links in the format `[label](link)`. MdMonitor:
+When monitoring is enabled, copied links in `[label](link)` format are processed automatically:
 
-1. Appends deduplicated markdown task lines into the daily file.
-2. Detects Git repository links by configured domains (for example `github.com`, `gitlab.com`).
-3. Normalizes matched repository URLs (ignores query/hash, trims trailing slash and `.git`), then runs your configured clone command template (default: `git clone {repo}.git`).
+1. Append to today's markdown file.
+2. Detect Git repositories by configured domains.
+3. Run your clone command template for recognized repositories.
 
-## Key Features
+Default clone template: `git clone {repo}.git`
 
-- Menu bar app with enable/disable monitoring switch.
-- Optional system notifications with in-app toggle.
-- Optional Dock icon visibility toggle (enabled by default).
-- Optional launch at login.
-- Chinese by default with English localization support and runtime language switch.
-- Daily file output under configurable directory (default: `~/Documents/cbm`).
-- Daily log output under same directory (`logs_yyyyMMdd.log`).
-- Daily de-duplication for both markdown append and clone.
-- Non-repository markdown links are still appended (without clone).
-- Git repository recognition supports configurable domains (for example `github.com`, `gitlab.com`).
-- Configurable clone command template with `{repo}` placeholder (default: `git clone {repo}.git`).
-- Optional multi-link processing for clipboard text containing multiple markdown links.
-- Recent 7-day files shown directly in menu.
-- Dedicated Settings window for configuration.
-- Preview window with left-side history file browser.
-- Today preview includes a default-collapsed live log panel for troubleshooting.
-- CLI command to get today's markdown path/content.
-- Sparkle 2 based in-app update channel (non-App Store distribution).
+## What It Does
+
+- Menu bar app with on/off monitoring.
+- Daily de-duplication for markdown append and clone.
+- Supports repository domains like `github.com`, `gitlab.com`, and custom hosts.
+- Supports custom clone command template with `{repo}` placeholder.
+- Keeps daily logs next to daily markdown files.
+- Main window includes markdown preview, calendar jump, and live log panel.
+- Built-in Sparkle 2 update channel (non-App Store).
 
 ## Default Output
 
-- Directory: `~/Documents/cbm`
-- File name: `links_yyyyMMdd.md`
-- Line format: `* [ ] [label](https://example.com/path)`
-- Log file: `logs_yyyyMMdd.log`
+- Output directory: `~/Documents/cbm`
+- Daily markdown: `links_yyyyMMdd.md`
+- Daily log: `logs_yyyyMMdd.log`
+- Markdown line format: `* [ ] [label](link)`
 
-## Development
+## Install
 
-- Swift: 6+
-- Platform: macOS
-- Build: `swift build`
-- Test: `swift test`
-- Run CLI: `swift run cbm help`
-- Run menu bar app: `swift run MdMonitor`
+1. Download `MdMonitor.dmg` from Releases.
+2. Open the DMG.
+3. Drag `MdMonitor.app` to `Applications`.
+4. Launch from `Applications`.
 
-## Packaging & Distribution
+If Gatekeeper warns that the app cannot be verified, right-click `MdMonitor.app` -> `Open` -> confirm `Open`.
 
-### Build a `.app` bundle (recommended with Xcode)
+## Use
 
-1. Open `Package.swift` in Xcode.
-2. Select product `MdMonitor` and target `My Mac`.
-3. Use `Product -> Archive`.
-4. In Organizer, choose `Distribute App -> Copy App` (or export signed build).
-5. You will get `MdMonitor.app` for local install/testing.
-
-### Build a `.dmg` from an existing `.app`
-
-Use CLI packaging directly:
-
-```bash
-make app         # build dist/MdMonitor.app
-make dmg         # build dist/MdMonitor.dmg
-make install     # install to /Applications (or INSTALL_DIR override)
-make install-local
-```
-
-If `hdiutil` is unavailable in your environment, `make dmg` falls back to `dist/MdMonitor.zip`.
-`make app` embeds `Sparkle.framework` into `Contents/Frameworks` automatically.
-`make dmg` now includes an `Applications` shortcut in the mounted image, so users can drag `MdMonitor.app` directly for install.
-`make install` now auto-moves a duplicate `~/Applications/MdMonitor.app` to a timestamped backup to avoid Spotlight launching an old copy (`REMOVE_DUPLICATE_COPY=0` to disable).
-
-If you already have an exported app, you can still create dmg manually. Assume `MdMonitor.app` is at `dist/MdMonitor.app`:
-
-```bash
-mkdir -p dist/dmg
-cp -R dist/MdMonitor.app dist/dmg/
-hdiutil create \
-  -volname "MdMonitor" \
-  -srcfolder dist/dmg \
-  -ov \
-  -format UDZO \
-  dist/MdMonitor.dmg
-```
-
-### User installation
-
-1. Open `MdMonitor.dmg`.
-2. Drag `MdMonitor.app` into `Applications`.
-3. Launch from `Applications` (first launch may require Gatekeeper confirmation).
-4. If you see "`Apple cannot verify...`", this build is currently not notarized with a paid Apple Developer account.
-5. For manual trust on your own Mac: right click `MdMonitor.app` -> `Open` -> confirm `Open` again.
-
-### Release notes
-
-- Sparkle feed URL is `https://github.com/etng/MdLinkMonitor/releases/latest/download/appcast.xml`.
-- Tag push `v<semver>` triggers `.github/workflows/release.yml` to build artifacts and upload `appcast.xml` into the release.
-- Use `make release-tag VERSION=x.y.z` to sync plist version, commit, tag, and push.
-- Configure repository secrets before first Sparkle release:
-  - `SPARKLE_PRIVATE_KEY`: base64 Ed25519 private seed (32-byte decoded)
-  - `SPARKLE_PUBLIC_KEY`: base64 Ed25519 public key (`SUPublicEDKey` value in `Info.plist`)
-- For public distribution outside personal machines, add code-signing + notarization in your release pipeline.
-- Current project status: no paid Apple Developer account yet, so builds are unsigned/non-notarized for Gatekeeper trust.
-
-## CLI
-
-- `cbm today --path`: print today's markdown file path.
-- `cbm today --print`: print today's markdown file content.
-- `cbm status`: print current settings snapshot.
-
-## Architecture
-
-- `Sources/CBMCore`: parser, URL normalization, daily store, dedup, clipboard pipeline, settings, clone executor.
-- `Sources/CBMMenuBar`: menu bar UI, preferences, preview window, launch-at-login, Sparkle updater entry.
-- `Sources/cbm`: CLI entry.
-- `Tests/CBMCoreTests`: unit tests for core logic.
-
-## Notes
-
-- Clone command is configurable in Settings via template (must include `{repo}`).
-- Daily dedup means duplicates are blocked only within the same day.
-- Sparkle update checks require proper app signing and appcast setup in distribution.
-- Update startup failures are handled silently and only written to daily logs.
-- In debug/dev runs, `Launch at Login` may fail due app signing/bundle constraints.
-- When started via `swift run MdMonitor`, system notifications are disabled intentionally; use `.app` launch for Notification Center integration.
+1. Click the menu bar icon and keep `Enable Monitoring` on.
+2. Copy markdown links while browsing.
+3. Open the main window from menu:
+   - `Today`
+   - recent dates
+   - settings/help/updates
+4. Configure:
+   - output directory
+   - repository domains
+   - clone command template
+   - language / notifications / launch-at-login
 
 ## Troubleshooting
 
-- If clipboard capture appears not working:
-  - Ensure `Enable Monitoring` is ON in menu bar app.
-  - Copy exactly one markdown link unless `Allow Multiple Links` is ON.
-  - Check daily log file: `~/Documents/cbm/logs_yyyyMMdd.log` (or your configured output directory).
-  - On successful append, logs include `Appended markdown entry: ...`.
-  - In debug builds, UI event traces are written with `[event]` prefix.
-- If a link is not recognized as a repository domain/path:
-  - It is still appended to markdown.
-  - Clone is skipped by design.
-- If menu action beeps but no popup:
-  - Update to latest code in this repo; menu actions now execute after menu dismiss.
-- If Spotlight launches an unexpected old MdMonitor version:
-  - Check both `/Applications/MdMonitor.app` and `~/Applications/MdMonitor.app`.
-  - Keep only one active install location (prefer `/Applications`).
-  - Run `make refresh-launch-services APP_PATH=/Applications/MdMonitor.app`.
+- Clipboard not captured:
+  - ensure monitoring is enabled
+  - if multi-link mode is off, copy exactly one markdown link
+  - check daily log file in output directory
+- A link is appended but not cloned:
+  - it did not match repository domain/path rules
+- Spotlight opens old version:
+  - keep only one install location (`/Applications` preferred)
+  - run `make refresh-launch-services APP_PATH=/Applications/MdMonitor.app` if needed
 
-## Dev Diagnostics
+## License and Acknowledgements
 
-- Verbose UI event logging is controlled by `Diagnostics.verboseEventLogging`.
-- File: `Sources/CBMMenuBar/Diagnostics.swift`
-- Default behavior:
-  - `DEBUG`: enabled
-  - non-`DEBUG`: disabled
+- License: [MIT](./LICENSE)
+- Third-party acknowledgements: [docs/acknowledgements.md](./docs/acknowledgements.md)
 
-## Current Status
+## For Contributors
 
-See:
-
-- PRD: `docs/prd.md`
-- Task board: `docs/todo.md`
+Development and release workflow are documented in [docs/contribution.md](./docs/contribution.md).

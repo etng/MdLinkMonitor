@@ -22,12 +22,29 @@ struct MainWindowView: View {
     private let sidebarWidth: CGFloat = 72
 
     var body: some View {
-        HStack(spacing: 0) {
-            leftSidebar
-            Divider()
-            rightPanel
+        ZStack(alignment: .bottom) {
+            HStack(spacing: 0) {
+                leftSidebar
+                Divider()
+                rightPanel
+            }
+
+            if let toast = model.toastMessage {
+                Text(toast)
+                    .font(.callout.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
+                    )
+                    .padding(.bottom, 18)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
         }
         .frame(minWidth: 980, minHeight: 700)
+        .animation(.easeOut(duration: 0.18), value: model.toastMessage)
         .onAppear(perform: reloadFilesAndContent)
         .onChange(of: selectedDate) { _ in
             syncSelectedFileForSelectedDate()
@@ -131,11 +148,13 @@ struct MainWindowView: View {
                         }
                     }
 
-                    iconActionButton(
-                        systemName: "scope",
-                        title: model.text(.goToday),
-                        action: goToToday
-                    )
+                    if !isViewingToday {
+                        iconActionButton(
+                            systemName: "scope",
+                            title: model.text(.goToday),
+                            action: goToToday
+                        )
+                    }
                 }
 
                 Spacer()
@@ -288,6 +307,45 @@ struct MainWindowView: View {
             Text("\(model.text(.currentVersion)): \(AppVersion.displayVersion)")
                 .font(.headline)
                 .foregroundStyle(.secondary)
+
+            if !model.latestReleaseTag.isEmpty {
+                Text(local("最新版本：", "Latest: ") + model.latestReleaseTag)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            HStack {
+                Text(local("更新记录", "Release Notes"))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    model.loadLatestReleaseNotes(force: true)
+                } label: {
+                    Label(model.text(.reload), systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Group {
+                if model.isLoadingLatestReleaseNotes {
+                    ProgressView(local("正在加载更新记录…", "Loading release notes..."))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+                } else if model.latestReleaseNotesMarkdown.isEmpty {
+                    Text(local("暂无更新记录。", "No release notes available."))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    ScrollView {
+                        Markdown(model.latestReleaseNotesMarkdown)
+                            .font(.system(size: 14))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
 
             Spacer()
         }
@@ -468,6 +526,7 @@ struct MainWindowView: View {
     private func copyMarkdownRaw() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
+        model.showToast(model.text(.copied))
     }
 
     private func makeReverseChronologicalLog(_ raw: String) -> String {
@@ -521,6 +580,11 @@ struct MainWindowView: View {
 
     private func local(_ zhHans: String, _ en: String) -> String {
         language == .zhHans ? zhHans : en
+    }
+
+    private var isViewingToday: Bool {
+        let displayedDate = dateFromFilePath(currentFilePath ?? "") ?? selectedDate
+        return Calendar.autoupdatingCurrent.isDateInToday(displayedDate)
     }
 
     private static let ymdParser: DateFormatter = {
