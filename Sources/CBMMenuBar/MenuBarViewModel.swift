@@ -21,6 +21,7 @@ final class MenuBarViewModel: ObservableObject {
     private let appUpdater: any AppUpdaterManaging
     private let notifier: any UserNotifying
     private let windowPresenter: WindowPresenter
+    private let defaults: UserDefaults
 
     private let memoryLogger: InMemoryLogger
     private let fileLogger: DailyFileLogger
@@ -30,19 +31,33 @@ final class MenuBarViewModel: ObservableObject {
     private var monitor: ClipboardMonitor?
     private let captureProcessingQueue = DispatchQueue(label: "com.y10n.mdmonitor.capture", qos: .utility)
     private var toastHideWorkItem: DispatchWorkItem?
+    private var autoUpdateWorkItem: DispatchWorkItem?
+
+    private enum UpdateStateKeys {
+        static let lastCheckAt = "mdmonitor.update.lastCheckAt"
+        static let cachedLatestReleaseTag = "mdmonitor.update.cachedLatestReleaseTag"
+        static let cachedLatestReleaseNotes = "mdmonitor.update.cachedLatestReleaseNotes"
+        static let cachedLatestReleaseFetchedAt = "mdmonitor.update.cachedLatestReleaseFetchedAt"
+    }
+
+    private static let autoUpdateInitialDelay: TimeInterval = 60
+    private static let autoUpdatePollInterval: TimeInterval = 60 * 60
+    private static let releaseNotesCacheTTL: TimeInterval = 60 * 60 * 24
 
     init(
         settingsStore: any SettingsStoring = UserDefaultsSettingsStore(),
         launchAtLoginManager: any LaunchAtLoginManaging = LaunchAtLoginManager(),
         appUpdater: any AppUpdaterManaging = SparkleUpdaterManager(),
         notifier: any UserNotifying = UserNotificationManager(),
-        windowPresenter: WindowPresenter = WindowPresenter()
+        windowPresenter: WindowPresenter = WindowPresenter(),
+        defaults: UserDefaults = .standard
     ) {
         self.settingsStore = settingsStore
         self.launchAtLoginManager = launchAtLoginManager
         self.appUpdater = appUpdater
         self.notifier = notifier
         self.windowPresenter = windowPresenter
+        self.defaults = defaults
 
         let loaded = settingsStore.load()
         self.settings = loaded
@@ -70,6 +85,8 @@ final class MenuBarViewModel: ObservableObject {
         logger.log(.info, "App started")
         logEvent("MenuBarViewModel initialized, monitoring=\(loaded.monitoringEnabled)")
         reloadRecentFiles()
+        restoreCachedReleaseNotes()
+        scheduleAutoUpdateChecks()
     }
 
     func text(_ key: L10nKey) -> String {
@@ -353,18 +370,34 @@ final class MenuBarViewModel: ObservableObject {
         recentFiles = (try? store.listRecentDailyFiles(limit: 30)) ?? []
     }
 
-    func checkForUpdates() {
-        logEvent("UI action checkForUpdates")
-        NSApp.activate(ignoringOtherApps: true)
+    @discardableResult
+    func checkForUpdates(userInitiated: Bool = true) -> AppUpdateCheckResult {
+        if userInitiated {
+            logEvent("UI action checkForUpdates")
+            NSApp.activate(ignoringOtherApps: true)
+        }
+
         switch appUpdater.checkForUpdates() {
         case .requested:
+            let now = Date()
+            persistLastUpdateCheck(at: now)
             let message = local("已发起更新检查", "Update check requested")
-            setStatus(message)
-            logger.log(.info, message)
-            notifyIfEnabled(message)
-            showToast(message)
+            if userInitiated {
+                setStatus(message)
+                logger.log(.info, message)
+                notifyIfEnabled(message)
+                showToast(message)
+            } else {
+                logger.log(.info, "Automatic update check requested")
+            }
+            return .requested
         case .skipped(let reason):
-            logger.log(.warning, "Update check skipped silently: \(reason)")
+            if userInitiated {
+                logger.log(.warning, "Update check skipped silently: \(reason)")
+            } else {
+                logger.log(.warning, "Automatic update check skipped: \(reason)")
+            }
+            return .skipped(reason: reason)
         }
     }
 
@@ -372,7 +405,7 @@ final class MenuBarViewModel: ObservableObject {
         if isLoadingLatestReleaseNotes {
             return
         }
-        if !force && !latestReleaseNotesMarkdown.isEmpty {
+        if !force && hasFreshReleaseNotesCache() {
             return
         }
 
@@ -398,21 +431,94 @@ final class MenuBarViewModel: ObservableObject {
                 }
 
                 let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
-                latestReleaseTag = payload.tagName
                 let body = payload.body.trimmingCharacters(in: .whitespacesAndNewlines)
-                if body.isEmpty {
-                    latestReleaseNotesMarkdown = local("该版本暂无更新记录。", "No release notes available for this version.")
-                } else {
-                    latestReleaseNotesMarkdown = body
-                }
+                let normalizedBody = body.isEmpty
+                    ? local("该版本暂无更新记录。", "No release notes available for this version.")
+                    : body
+
+                latestReleaseTag = payload.tagName
+                latestReleaseNotesMarkdown = normalizedBody
+                persistReleaseNotesCache(tag: payload.tagName, notes: normalizedBody, fetchedAt: Date())
             } catch {
                 logger.log(.warning, "Load release notes failed: \(error.localizedDescription)")
-                latestReleaseNotesMarkdown = local(
-                    "更新记录加载失败，请稍后重试。",
-                    "Failed to load release notes. Please try again later."
-                )
+                if latestReleaseNotesMarkdown.isEmpty {
+                    latestReleaseNotesMarkdown = local(
+                        "更新记录加载失败，请稍后重试。",
+                        "Failed to load release notes. Please try again later."
+                    )
+                }
             }
         }
+    }
+
+    private func scheduleAutoUpdateChecks() {
+        logger.log(.info, "Schedule automatic update checks with initial delay \(Int(Self.autoUpdateInitialDelay))s")
+        scheduleAutoUpdateTick(after: Self.autoUpdateInitialDelay)
+    }
+
+    private func scheduleAutoUpdateTick(after interval: TimeInterval) {
+        autoUpdateWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor in
+                self?.runAutomaticUpdateMaintenance()
+            }
+        }
+        autoUpdateWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + interval, execute: workItem)
+    }
+
+    private func runAutomaticUpdateMaintenance() {
+        if shouldRunAutomaticUpdateCheck(now: Date()) {
+            let result = checkForUpdates(userInitiated: false)
+            if case .requested = result {
+                loadLatestReleaseNotes(force: true)
+            }
+        } else {
+            logger.log(.info, "Skip automatic update check: already checked today")
+        }
+
+        scheduleAutoUpdateTick(after: Self.autoUpdatePollInterval)
+    }
+
+    private func shouldRunAutomaticUpdateCheck(now: Date) -> Bool {
+        guard let last = lastUpdateCheckAt() else { return true }
+        return !Calendar.autoupdatingCurrent.isDate(last, inSameDayAs: now)
+    }
+
+    private func lastUpdateCheckAt() -> Date? {
+        guard defaults.object(forKey: UpdateStateKeys.lastCheckAt) != nil else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: defaults.double(forKey: UpdateStateKeys.lastCheckAt))
+    }
+
+    private func persistLastUpdateCheck(at date: Date) {
+        defaults.set(date.timeIntervalSince1970, forKey: UpdateStateKeys.lastCheckAt)
+    }
+
+    private func restoreCachedReleaseNotes() {
+        let tag = defaults.string(forKey: UpdateStateKeys.cachedLatestReleaseTag) ?? ""
+        let notes = defaults.string(forKey: UpdateStateKeys.cachedLatestReleaseNotes) ?? ""
+        latestReleaseTag = tag
+        latestReleaseNotesMarkdown = notes
+
+        if !tag.isEmpty || !notes.isEmpty {
+            logger.log(.info, "Loaded cached release notes (tag=\(tag.isEmpty ? "-" : tag))")
+        }
+    }
+
+    private func persistReleaseNotesCache(tag: String, notes: String, fetchedAt: Date) {
+        defaults.set(tag, forKey: UpdateStateKeys.cachedLatestReleaseTag)
+        defaults.set(notes, forKey: UpdateStateKeys.cachedLatestReleaseNotes)
+        defaults.set(fetchedAt.timeIntervalSince1970, forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt)
+    }
+
+    private func hasFreshReleaseNotesCache() -> Bool {
+        guard !latestReleaseNotesMarkdown.isEmpty else { return false }
+        guard defaults.object(forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt) != nil else { return false }
+
+        let fetchedAt = Date(timeIntervalSince1970: defaults.double(forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt))
+        return Date().timeIntervalSince(fetchedAt) < Self.releaseNotesCacheTTL
     }
 
     private func handleClipboardText(_ text: String) {
