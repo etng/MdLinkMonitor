@@ -33,6 +33,7 @@ enum L10nKey {
     case previewTitle
     case reload
     case copyMarkdown
+    case copyLogs
     case copied
     case backToCalendar
     case currentVersion
@@ -83,6 +84,7 @@ enum AppLocalizer {
             case .previewTitle: return "Markdown 预览"
             case .reload: return "刷新"
             case .copyMarkdown: return "复制 Markdown"
+            case .copyLogs: return "复制日志"
             case .copied: return "已复制"
             case .backToCalendar: return "返回日历"
             case .currentVersion: return "当前版本"
@@ -129,6 +131,7 @@ enum AppLocalizer {
             case .previewTitle: return "Markdown Preview"
             case .reload: return "Reload"
             case .copyMarkdown: return "Copy Markdown"
+            case .copyLogs: return "Copy Logs"
             case .copied: return "Copied"
             case .backToCalendar: return "Back to Calendar"
             case .currentVersion: return "Current Version"

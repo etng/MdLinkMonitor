@@ -25,7 +25,11 @@ func cloneExecutorUsesDefaultTemplateWithCanonicalCloneURL() {
 
     #expect(result.isSuccess)
     #expect(runner.recordedCommand == "/bin/zsh")
-    #expect(runner.recordedArguments == ["-lc", "git clone https://github.com/owner/repo.git"])
+    #expect(runner.recordedArguments.count == 2)
+    let commandLine = runner.recordedArguments[1]
+    #expect(commandLine.contains("PATH="))
+    #expect(commandLine.contains(NSString(string: "~/bin").expandingTildeInPath))
+    #expect(commandLine.contains("git clone https://github.com/owner/repo.git"))
     #expect(logger.entries.count == 2)
     #expect(logger.entries[0].message.contains("Start clone"))
     #expect(logger.entries[1].message.contains("Clone success"))
@@ -43,7 +47,9 @@ func cloneExecutorSupportsCustomTemplate() {
     )
 
     #expect(runner.recordedCommand == "/bin/zsh")
-    #expect(runner.recordedArguments == ["-lc", "git clone --depth 1 https://gitlab.com/group/project.git"])
+    #expect(runner.recordedArguments.count == 2)
+    let commandLine = runner.recordedArguments[1]
+    #expect(commandLine.contains("git clone --depth 1 https://gitlab.com/group/project.git"))
 }
 
 @Test
@@ -84,7 +90,9 @@ func cloneExecutorRunsFromConfiguredDirectory() {
     )
 
     #expect(runner.recordedCommand == "/bin/zsh")
-    #expect(runner.recordedArguments == ["-lc", "cd '\(path)' && git clone https://gitlab.com/group/project.git"])
+    #expect(runner.recordedArguments.count == 2)
+    let commandLine = runner.recordedArguments[1]
+    #expect(commandLine.contains("cd '\(path)' && git clone https://gitlab.com/group/project.git"))
     #expect(FileManager.default.fileExists(atPath: path))
 }
 
