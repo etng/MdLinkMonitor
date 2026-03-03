@@ -195,17 +195,17 @@ struct MainWindowView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 8)
                     } else {
-                        Text(attributedMarkdown(content))
+                        Markdown(content)
                             .font(.system(size: markdownFontSize))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 4)
-                            .textSelection(.enabled)
                     }
 
                     Color.clear
                         .frame(height: 1)
                         .id(markdownBottomAnchor)
                 }
+                .textSelection(.enabled)
                 .onChange(of: content) { _ in
                     guard currentFilePath == todayFilePath else { return }
                     scrollMarkdownToBottom(proxy: proxy, animated: false)
@@ -382,6 +382,14 @@ struct MainWindowView: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(isActive ? Color.accentColor : Color.clear)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if panel == .updates && model.hasUpdateBadge {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 9, height: 9)
+                            .offset(x: 2, y: -2)
+                    }
+                }
         }
         .buttonStyle(.plain)
         .help(panelTitle(panel))
@@ -552,13 +560,6 @@ struct MainWindowView: View {
         let lines = raw.split(whereSeparator: \.isNewline).map(String.init)
         guard !lines.isEmpty else { return "" }
         return lines.suffix(400).reversed().joined(separator: "\n")
-    }
-
-    private func attributedMarkdown(_ markdown: String) -> AttributedString {
-        if let attributed = try? AttributedString(markdown: markdown) {
-            return attributed
-        }
-        return AttributedString(markdown)
     }
 
     private func scrollMarkdownToBottom(proxy: ScrollViewProxy, animated: Bool) {
