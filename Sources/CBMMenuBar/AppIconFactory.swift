@@ -66,11 +66,11 @@ enum AppIconFactory {
         m.lineCapStyle = .round
         m.lineJoinStyle = .round
         m.lineWidth = max(1, size * 0.06)
-        m.move(to: NSPoint(x: size * 0.29, y: size * 0.57))
-        m.line(to: NSPoint(x: size * 0.34, y: size * 0.36))
-        m.line(to: NSPoint(x: size * 0.40, y: size * 0.50))
-        m.line(to: NSPoint(x: size * 0.46, y: size * 0.36))
-        m.line(to: NSPoint(x: size * 0.52, y: size * 0.57))
+        m.move(to: NSPoint(x: size * 0.29, y: size * 0.36))
+        m.line(to: NSPoint(x: size * 0.33, y: size * 0.58))
+        m.line(to: NSPoint(x: size * 0.40, y: size * 0.44))
+        m.line(to: NSPoint(x: size * 0.47, y: size * 0.58))
+        m.line(to: NSPoint(x: size * 0.52, y: size * 0.36))
         detailColor.setStroke()
         m.stroke()
 
