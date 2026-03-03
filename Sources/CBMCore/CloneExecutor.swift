@@ -66,7 +66,11 @@ public struct GitC1CloneExecutor {
             with: repository.canonicalURL
         )
 
-        logger?.log(.info, "Start clone: \(repository.canonicalURL) with template: \(normalizedTemplate)")
+        logger?.log(.info, "Start clone: \(repository.canonicalURL) with cmdline: \(commandLine)")
+
+        if commandRunner is ProcessCommandRunner {
+            return launchBackgroundClone(commandLine: commandLine, repository: repository)
+        }
 
         let result = commandRunner.run(command: "/bin/zsh", arguments: ["-lc", commandLine])
 
@@ -77,5 +81,21 @@ public struct GitC1CloneExecutor {
         }
 
         return result
+    }
+
+    private func launchBackgroundClone(commandLine: String, repository: GitRepository) -> CommandExecutionResult {
+        let process = Process()
+        process.executableURL = URL(filePath: "/bin/zsh")
+        process.arguments = ["-lc", commandLine]
+
+        do {
+            try process.run()
+            logger?.log(.info, "Clone launched in background: \(repository.canonicalURL) pid=\(process.processIdentifier)")
+            return CommandExecutionResult(exitCode: 0, standardOutput: "launched", standardError: "")
+        } catch {
+            let message = error.localizedDescription
+            logger?.log(.error, "Clone launch failed: \(repository.canonicalURL) \(message)")
+            return CommandExecutionResult(exitCode: -1, standardOutput: "", standardError: message)
+        }
     }
 }

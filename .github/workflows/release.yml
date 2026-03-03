@@ -225,8 +225,18 @@ jobs:
           ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
           FEED_LINK="https://github.com/${REPO}/releases/latest/download/appcast.xml"
           RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
-
-          DESCRIPTION_TEXT="$(sed 's/&/\\&amp;/g; s/</\\&lt;/g; s/>/\\&gt;/g' "${RELEASE_NOTES_FILE}")"
+          DESCRIPTION_HTML_FILE="dist/release-notes.sparkle.html"
+          {
+            echo "<h2>Release ${TAG}</h2>"
+            echo "<p><a href=\"${RELEASE_URL}\">View release on GitHub</a></p>"
+            echo "<ul>"
+            sed -n 's/^- //p' "${RELEASE_NOTES_FILE}" | while IFS= read -r line; do
+              safe_line="$(printf '%s' "${line}" | sed 's/&/\\&amp;/g; s/</\\&lt;/g; s/>/\\&gt;/g')"
+              echo "<li>${safe_line}</li>"
+            done
+            echo "</ul>"
+          } > "${DESCRIPTION_HTML_FILE}"
+          DESCRIPTION_HTML="$(cat "${DESCRIPTION_HTML_FILE}")"
 
           cat > "${APPCAST_FILE}" <<XML
           <?xml version="1.0" encoding="utf-8"?>
@@ -241,7 +251,7 @@ jobs:
               <item>
                 <title>${TAG}</title>
                 <link>${RELEASE_URL}</link>
-                <description>${DESCRIPTION_TEXT}</description>
+                <description><![CDATA[${DESCRIPTION_HTML}]]></description>
                 <pubDate>${PUB_DATE}</pubDate>
                 <enclosure
                   url="${ASSET_URL}"

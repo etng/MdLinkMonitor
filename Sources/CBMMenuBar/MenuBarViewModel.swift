@@ -7,6 +7,10 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var settings: AppSettings
     @Published private(set) var recentFiles: [URL] = []
     @Published private(set) var statusText: String
+    @Published private(set) var latestReleaseTag: String = ""
+    @Published private(set) var latestReleaseNotesMarkdown: String = ""
+    @Published private(set) var isLoadingLatestReleaseNotes = false
+    @Published var toastMessage: String?
     @Published var mainWindowPanel: MainWindowPanel = .preview
     @Published var showBackToCalendarInPreview = false
     @Published var mainWindowTargetFilePath: String = ""
@@ -24,6 +28,8 @@ final class MenuBarViewModel: ObservableObject {
 
     private let orchestrator: ClipboardCaptureOrchestrator
     private var monitor: ClipboardMonitor?
+    private let captureProcessingQueue = DispatchQueue(label: "com.y10n.mdmonitor.capture", qos: .utility)
+    private var toastHideWorkItem: DispatchWorkItem?
 
     init(
         settingsStore: any SettingsStoring = UserDefaultsSettingsStore(),
@@ -233,6 +239,53 @@ final class MenuBarViewModel: ObservableObject {
         }
     }
 
+    func pickOutputDirectory(startingPath: String) -> String? {
+        NSApp.activate(ignoringOtherApps: true)
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = text(.chooseDirectory)
+        panel.directoryURL = URL(filePath: NSString(string: startingPath).expandingTildeInPath)
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return nil
+        }
+        return url.path(percentEncoded: false)
+    }
+
+    func saveSettings(_ nextDraft: AppSettings) {
+        let previous = settings
+        var next = nextDraft
+
+        if previous.launchAtLogin != next.launchAtLogin {
+            if !launchAtLoginManager.setEnabled(next.launchAtLogin) {
+                next.launchAtLogin = previous.launchAtLogin
+                let warn = local(
+                    "开机启动设置失败，已保留原设置",
+                    "Failed to apply launch-at-login change, reverted to previous value"
+                )
+                logger.log(.warning, warn)
+            }
+        }
+
+        settings = next
+        settingsStore.save(next)
+        monitor?.isEnabled = next.monitoringEnabled
+        AppActivationPolicyManager.apply(showDockIcon: next.showDockIcon)
+
+        if previous.outputDirectoryPath != next.outputDirectoryPath {
+            fileLogger.baseDirectoryPath = next.outputDirectoryPath
+            reloadRecentFiles()
+        }
+
+        let message = local("配置已保存", "Settings saved")
+        setStatus(message)
+        logger.log(.info, message)
+        showToast(message)
+    }
+
     func openTodayFilePath() -> String {
         let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
         return store.todayFileURL().path(percentEncoded: false)
@@ -288,6 +341,7 @@ final class MenuBarViewModel: ObservableObject {
     func openUpdatesPanel() {
         logEvent("UI action openUpdatesPanel")
         openMainWindow(filePath: openTodayFilePath(), panel: .updates)
+        loadLatestReleaseNotes()
 
         let message = local("已打开更新面板", "Updates panel opened")
         setStatus(message)
@@ -308,59 +362,131 @@ final class MenuBarViewModel: ObservableObject {
             setStatus(message)
             logger.log(.info, message)
             notifyIfEnabled(message)
+            showToast(message)
         case .skipped(let reason):
             logger.log(.warning, "Update check skipped silently: \(reason)")
         }
     }
 
-    private func handleClipboardText(_ text: String) {
-        logger.log(.info, "Clipboard changed, length=\(text.count), allowMultiple=\(settings.allowMultipleLinks)")
+    func loadLatestReleaseNotes(force: Bool = false) {
+        if isLoadingLatestReleaseNotes {
+            return
+        }
+        if !force && !latestReleaseNotesMarkdown.isEmpty {
+            return
+        }
 
+        isLoadingLatestReleaseNotes = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.isLoadingLatestReleaseNotes = false }
+
+            guard let url = URL(string: "https://api.github.com/repos/etng/MdLinkMonitor/releases/latest") else {
+                self.latestReleaseNotesMarkdown = self.local("无法加载更新记录", "Failed to load release notes")
+                return
+            }
+
+            var request = URLRequest(url: url)
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            request.setValue("MdMonitor", forHTTPHeaderField: "User-Agent")
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+                    throw NSError(domain: "mdmonitor.updates", code: http.statusCode)
+                }
+
+                let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
+                latestReleaseTag = payload.tagName
+                let body = payload.body.trimmingCharacters(in: .whitespacesAndNewlines)
+                if body.isEmpty {
+                    latestReleaseNotesMarkdown = local("该版本暂无更新记录。", "No release notes available for this version.")
+                } else {
+                    latestReleaseNotesMarkdown = body
+                }
+            } catch {
+                logger.log(.warning, "Load release notes failed: \(error.localizedDescription)")
+                latestReleaseNotesMarkdown = local(
+                    "更新记录加载失败，请稍后重试。",
+                    "Failed to load release notes. Please try again later."
+                )
+            }
+        }
+    }
+
+    private func handleClipboardText(_ text: String) {
+        let settingsSnapshot = settings
+        logger.log(.info, "Clipboard changed, length=\(text.count), allowMultiple=\(settingsSnapshot.allowMultipleLinks)")
         let extractedLinks = MarkdownLinkExtractor.extract(from: text)
         logger.log(.info, "Markdown links extracted=\(extractedLinks.count)")
 
-        let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
-        let result = orchestrator.process(
-            clipboardText: text,
-            allowMultipleLinks: settings.allowMultipleLinks,
-            repositoryDomains: Set(settings.repositoryDomains),
-            cloneCommandTemplate: settings.cloneCommandTemplate,
-            store: store
-        )
-
-        guard result.totalCandidates > 0 else {
-            let hint: String
-            if extractedLinks.isEmpty {
-                hint = local("未识别到 Markdown 链接", "No markdown links detected")
-            } else if !settings.allowMultipleLinks && extractedLinks.count > 1 {
-                hint = local("检测到多链接，当前已忽略（可开启多链接模式）", "Multiple links ignored (enable multiple-link mode)")
-            } else {
-                hint = local("已识别链接，但未命中已配置的仓库域名路径", "Links detected but no configured repository domains matched")
-            }
+        if extractedLinks.isEmpty {
+            let hint = local("未识别到 Markdown 链接", "No markdown links detected")
             setStatus(hint)
             logger.log(.info, hint)
             return
         }
 
-        let summary = local(
-            "识别 \(result.totalCandidates) 个链接，写入 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
-            "Detected \(result.totalCandidates) links, appended \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
-        )
-
-        setStatus(summary)
-        logger.log(.info, summary)
-        if result.appendedCount > 0 {
-            let writeMessage = local("已写入 markdown", "Markdown updated") + ": \(store.todayFileURL().path(percentEncoded: false))"
-            logger.log(.info, writeMessage)
+        if !settingsSnapshot.allowMultipleLinks && extractedLinks.count > 1 {
+            let hint = local("检测到多链接，当前已忽略（可开启多链接模式）", "Multiple links ignored (enable multiple-link mode)")
+            setStatus(hint)
+            logger.log(.info, hint)
+            return
         }
-        reloadRecentFiles()
 
-        if !result.errors.isEmpty {
-            let errorSummary = local("处理有失败，请查看当日日志", "Processing had failures, check daily log")
-            logger.log(.error, result.errors.joined(separator: " | "))
-            notifyIfEnabled(errorSummary)
-        } else {
-            notifyIfEnabled(summary)
+        let textSnapshot = text
+        let outputDirectory = settingsSnapshot.outputDirectoryPath
+        let allowMultiple = settingsSnapshot.allowMultipleLinks
+        let repositoryDomains = Set(settingsSnapshot.repositoryDomains)
+        let cloneCommandTemplate = settingsSnapshot.cloneCommandTemplate
+        let orchestrator = self.orchestrator
+
+        captureProcessingQueue.async { [weak self] in
+            let store = DailyMarkdownStore(baseDirectoryPath: outputDirectory)
+            let result = orchestrator.process(
+                clipboardText: textSnapshot,
+                allowMultipleLinks: allowMultiple,
+                repositoryDomains: repositoryDomains,
+                cloneCommandTemplate: cloneCommandTemplate,
+                store: store
+            )
+            let writtenPath = store.todayFileURL().path(percentEncoded: false)
+
+            DispatchQueue.main.async {
+                guard let self else { return }
+
+                guard result.totalCandidates > 0 else {
+                    let hint = self.local(
+                        "已识别链接，但未命中已配置的仓库域名路径",
+                        "Links detected but no configured repository domains matched"
+                    )
+                    self.setStatus(hint)
+                    self.logger.log(.info, hint)
+                    return
+                }
+
+                let summary = self.local(
+                    "识别 \(result.totalCandidates) 个链接，写入 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
+                    "Detected \(result.totalCandidates) links, appended \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
+                )
+
+                self.setStatus(summary)
+                self.logger.log(.info, summary)
+                if result.appendedCount > 0 {
+                    let writeMessage = self.local("已写入 markdown", "Markdown updated") + ": \(writtenPath)"
+                    self.logger.log(.info, writeMessage)
+                }
+                self.reloadRecentFiles()
+
+                if !result.errors.isEmpty {
+                    let errorSummary = self.local("处理有失败，请查看当日日志", "Processing had failures, check daily log")
+                    self.logger.log(.error, result.errors.joined(separator: " | "))
+                    self.notifyIfEnabled(errorSummary)
+                } else {
+                    self.notifyIfEnabled(summary)
+                }
+            }
         }
     }
 
@@ -375,6 +501,20 @@ final class MenuBarViewModel: ObservableObject {
         statusText = message
     }
 
+    func showToast(_ message: String, duration: TimeInterval = 1.8) {
+        toastHideWorkItem?.cancel()
+        toastMessage = message
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            if self.toastMessage == message {
+                self.toastMessage = nil
+            }
+        }
+        toastHideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
+    }
+
     private func notifyIfEnabled(_ message: String) {
         guard settings.notificationsEnabled else { return }
         notifier.notify(title: text(.appTitle), body: message)
@@ -387,5 +527,15 @@ final class MenuBarViewModel: ObservableObject {
     private func logEvent(_ message: String) {
         guard Diagnostics.verboseEventLogging else { return }
         logger.log(.info, "[event] \(message)")
+    }
+}
+
+private struct GitHubReleasePayload: Decodable {
+    let tagName: String
+    let body: String
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case body
     }
 }

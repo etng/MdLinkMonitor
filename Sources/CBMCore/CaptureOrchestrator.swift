@@ -18,7 +18,7 @@ public struct CaptureProcessResult: Sendable {
     public static let empty = CaptureProcessResult(totalCandidates: 0, appendedCount: 0, clonedCount: 0, skippedCount: 0, errors: [])
 }
 
-public final class ClipboardCaptureOrchestrator {
+public final class ClipboardCaptureOrchestrator: @unchecked Sendable {
     private let logger: (any Logging)?
     private let cloneExecutor: GitC1CloneExecutor
 

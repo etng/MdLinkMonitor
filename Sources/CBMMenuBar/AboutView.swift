@@ -4,6 +4,7 @@ import SwiftUI
 
 struct AboutView: View {
     let language: AppLanguage
+    private let repositoryURL = URL(string: "https://github.com/etng/MdLinkMonitor")!
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -13,6 +14,9 @@ struct AboutView: View {
             Text("\(AppLocalizer.text(.currentVersion, language: language)): \(AppVersion.displayVersion)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            Link("GitHub: etng/MdLinkMonitor", destination: repositoryURL)
+                .font(.subheadline)
 
             Divider()
 
@@ -38,11 +42,7 @@ struct AboutView: View {
             4. 日历面板中，带书签图标的日期表示当天有记录；双击日期可直接打开该天预览。
             5. 设置面板可调整输出目录、仓库域名、监控开关、通知和字体等偏好。
             6. 日志写入与 markdown 同目录，按天保存为 `logs_YYYYMMDD.log`，用于排查问题。
-
-            ## 版本与发布
-
-            - 当前版本遵循 **SemVer**：`主版本.次版本.修订号`。
-            - 发布时建议以同版本号打 Git Tag（例如 `v0.2.0`）。
+            7. 项目使用 MIT 许可证，第三方组件鸣谢请见仓库文档。
             """
         case .en:
             return """
@@ -54,11 +54,7 @@ struct AboutView: View {
             4. In the calendar panel, bookmarked days indicate available records. Double-click a day to jump to preview.
             5. Use Settings to configure output directory, repository domains, monitoring, notifications, and font preferences.
             6. Logs are saved next to markdown files as `logs_YYYYMMDD.log` for diagnostics.
-
-            ## Versioning
-
-            - The app follows **SemVer**: `MAJOR.MINOR.PATCH`.
-            - Use the same version in your Git tag, for example `v0.2.0`.
+            7. The project is MIT licensed. See repository docs for third-party acknowledgements.
             """
         }
     }
