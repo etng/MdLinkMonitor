@@ -10,6 +10,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var latestReleaseTag: String = ""
     @Published private(set) var latestReleaseNotesMarkdown: String = ""
     @Published private(set) var isLoadingLatestReleaseNotes = false
+    @Published private(set) var hasUpdateBadge = false
     @Published var toastMessage: String?
     @Published var mainWindowPanel: MainWindowPanel = .preview
     @Published var showBackToCalendarInPreview = false
@@ -402,53 +403,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func loadLatestReleaseNotes(force: Bool = false) {
-        if isLoadingLatestReleaseNotes {
-            return
-        }
-        if !force && hasFreshReleaseNotesCache() {
-            return
-        }
-
-        isLoadingLatestReleaseNotes = true
-
-        Task { [weak self] in
-            guard let self else { return }
-            defer { self.isLoadingLatestReleaseNotes = false }
-
-            guard let url = URL(string: "https://api.github.com/repos/etng/MdLinkMonitor/releases/latest") else {
-                self.latestReleaseNotesMarkdown = self.local("无法加载更新记录", "Failed to load release notes")
-                return
-            }
-
-            var request = URLRequest(url: url)
-            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-            request.setValue("MdMonitor", forHTTPHeaderField: "User-Agent")
-
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-                    throw NSError(domain: "mdmonitor.updates", code: http.statusCode)
-                }
-
-                let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
-                let body = payload.body.trimmingCharacters(in: .whitespacesAndNewlines)
-                let normalizedBody = body.isEmpty
-                    ? local("该版本暂无更新记录。", "No release notes available for this version.")
-                    : body
-
-                latestReleaseTag = payload.tagName
-                latestReleaseNotesMarkdown = normalizedBody
-                persistReleaseNotesCache(tag: payload.tagName, notes: normalizedBody, fetchedAt: Date())
-            } catch {
-                logger.log(.warning, "Load release notes failed: \(error.localizedDescription)")
-                if latestReleaseNotesMarkdown.isEmpty {
-                    latestReleaseNotesMarkdown = local(
-                        "更新记录加载失败，请稍后重试。",
-                        "Failed to load release notes. Please try again later."
-                    )
-                }
-            }
-        }
+        loadLatestReleaseNotes(force: force, silently: false)
     }
 
     private func scheduleAutoUpdateChecks() {
@@ -469,10 +424,9 @@ final class MenuBarViewModel: ObservableObject {
 
     private func runAutomaticUpdateMaintenance() {
         if shouldRunAutomaticUpdateCheck(now: Date()) {
-            let result = checkForUpdates(userInitiated: false)
-            if case .requested = result {
-                loadLatestReleaseNotes(force: true)
-            }
+            logger.log(.info, "Automatic update scan started")
+            persistLastUpdateCheck(at: Date())
+            loadLatestReleaseNotes(force: true, silently: true)
         } else {
             logger.log(.info, "Skip automatic update check: already checked today")
         }
@@ -501,6 +455,7 @@ final class MenuBarViewModel: ObservableObject {
         let notes = defaults.string(forKey: UpdateStateKeys.cachedLatestReleaseNotes) ?? ""
         latestReleaseTag = tag
         latestReleaseNotesMarkdown = notes
+        updateAvailabilityBadge(from: tag)
 
         if !tag.isEmpty || !notes.isEmpty {
             logger.log(.info, "Loaded cached release notes (tag=\(tag.isEmpty ? "-" : tag))")
@@ -519,6 +474,85 @@ final class MenuBarViewModel: ObservableObject {
 
         let fetchedAt = Date(timeIntervalSince1970: defaults.double(forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt))
         return Date().timeIntervalSince(fetchedAt) < Self.releaseNotesCacheTTL
+    }
+
+    private func loadLatestReleaseNotes(force: Bool, silently: Bool) {
+        if isLoadingLatestReleaseNotes {
+            return
+        }
+        if !force && hasFreshReleaseNotesCache() {
+            updateAvailabilityBadge(from: latestReleaseTag)
+            return
+        }
+
+        isLoadingLatestReleaseNotes = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.isLoadingLatestReleaseNotes = false }
+
+            guard let url = URL(string: "https://api.github.com/repos/etng/MdLinkMonitor/releases/latest") else {
+                if !silently {
+                    self.latestReleaseNotesMarkdown = self.local("无法加载更新记录", "Failed to load release notes")
+                }
+                return
+            }
+
+            var request = URLRequest(url: url)
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            request.setValue("MdMonitor", forHTTPHeaderField: "User-Agent")
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+                    throw NSError(domain: "mdmonitor.updates", code: http.statusCode)
+                }
+
+                let payload = try JSONDecoder().decode(GitHubReleasePayload.self, from: data)
+                let body = payload.body.trimmingCharacters(in: .whitespacesAndNewlines)
+                let normalizedBody = body.isEmpty
+                    ? local("该版本暂无更新记录。", "No release notes available for this version.")
+                    : body
+
+                latestReleaseTag = payload.tagName
+                latestReleaseNotesMarkdown = normalizedBody
+                persistReleaseNotesCache(tag: payload.tagName, notes: normalizedBody, fetchedAt: Date())
+                updateAvailabilityBadge(from: payload.tagName)
+            } catch {
+                logger.log(.warning, "Load release notes failed: \(error.localizedDescription)")
+                if !silently, latestReleaseNotesMarkdown.isEmpty {
+                    latestReleaseNotesMarkdown = local(
+                        "更新记录加载失败，请稍后重试。",
+                        "Failed to load release notes. Please try again later."
+                    )
+                }
+            }
+        }
+    }
+
+    private func updateAvailabilityBadge(from latestTag: String) {
+        hasUpdateBadge = isNewerReleaseTag(latestTag, than: AppVersion.semVer)
+    }
+
+    private func isNewerReleaseTag(_ tag: String, than current: String) -> Bool {
+        guard let latest = parseSemVer(tag), let installed = parseSemVer(current) else {
+            return false
+        }
+        return latest > installed
+    }
+
+    private func parseSemVer(_ value: String) -> (Int, Int, Int)? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed.hasPrefix("v") ? String(trimmed.dropFirst()) : trimmed
+        let core = normalized.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: true).first ?? Substring(normalized)
+        let parts = core.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count >= 3,
+              let major = Int(parts[0]),
+              let minor = Int(parts[1]),
+              let patch = Int(parts[2]) else {
+            return nil
+        }
+        return (major, minor, patch)
     }
 
     private func handleClipboardText(_ text: String) {
