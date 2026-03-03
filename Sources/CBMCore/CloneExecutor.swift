@@ -48,6 +48,16 @@ public struct ProcessCommandRunner: CommandRunning {
 }
 
 public struct GitC1CloneExecutor {
+    private enum CloneExecutionError: Error {
+        case prepareDirectoryFailed(String)
+
+        var message: String {
+            switch self {
+            case .prepareDirectoryFailed(let value): return value
+            }
+        }
+    }
+
     private let commandRunner: any CommandRunning
     private let logger: (any Logging)?
 
@@ -58,13 +68,26 @@ public struct GitC1CloneExecutor {
 
     public func clone(
         repository: GitRepository,
-        commandTemplate: String = AppSettings.defaultCloneCommandTemplate
+        commandTemplate: String = AppSettings.defaultCloneCommandTemplate,
+        cloneDirectoryPath: String? = nil
     ) -> CommandExecutionResult {
         let normalizedTemplate = AppSettings.normalizeCloneCommandTemplate(commandTemplate)
-        let commandLine = normalizedTemplate.replacingOccurrences(
+        let baseCommandLine = normalizedTemplate.replacingOccurrences(
             of: AppSettings.cloneCommandPlaceholder,
             with: repository.canonicalURL
         )
+        let commandLine: String
+        do {
+            commandLine = try composeCommandLine(baseCommandLine: baseCommandLine, cloneDirectoryPath: cloneDirectoryPath)
+        } catch let error as CloneExecutionError {
+            let message = error.message
+            logger?.log(.error, "Clone launch failed: \(repository.canonicalURL) \(message)")
+            return CommandExecutionResult(exitCode: -1, standardOutput: "", standardError: message)
+        } catch {
+            let message = error.localizedDescription
+            logger?.log(.error, "Clone launch failed: \(repository.canonicalURL) \(message)")
+            return CommandExecutionResult(exitCode: -1, standardOutput: "", standardError: message)
+        }
 
         logger?.log(.info, "Start clone: \(repository.canonicalURL) with cmdline: \(commandLine)")
 
@@ -81,6 +104,37 @@ public struct GitC1CloneExecutor {
         }
 
         return result
+    }
+
+    private func composeCommandLine(baseCommandLine: String, cloneDirectoryPath: String?) throws -> String {
+        guard let cloneDirectory = normalizedCloneDirectoryPath(cloneDirectoryPath) else {
+            return baseCommandLine
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: URL(filePath: cloneDirectory),
+                withIntermediateDirectories: true
+            )
+        } catch {
+            throw CloneExecutionError.prepareDirectoryFailed(
+                "Failed to prepare clone directory '\(cloneDirectory)': \(error.localizedDescription)"
+            )
+        }
+
+        let escapedDirectory = shellEscape(cloneDirectory)
+        return "cd \(escapedDirectory) && \(baseCommandLine)"
+    }
+
+    private func normalizedCloneDirectoryPath(_ path: String?) -> String? {
+        guard let path else { return nil }
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return NSString(string: trimmed).expandingTildeInPath
+    }
+
+    private func shellEscape(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
     }
 
     private func launchBackgroundClone(commandLine: String, repository: GitRepository) -> CommandExecutionResult {

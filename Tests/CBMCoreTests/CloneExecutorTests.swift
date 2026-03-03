@@ -1,5 +1,6 @@
 import Testing
 @testable import CBMCore
+import Foundation
 
 private final class MockRunner: CommandRunning {
     var recordedCommand: String?
@@ -60,4 +61,26 @@ func cloneExecutorLogsFailure() {
     #expect(logger.entries.count == 2)
     #expect(logger.entries[1].level == .error)
     #expect(logger.entries[1].message.contains("not found"))
+}
+
+@Test
+func cloneExecutorRunsFromConfiguredDirectory() {
+    let runner = MockRunner()
+    let executor = GitC1CloneExecutor(commandRunner: runner)
+    let repo = GitRepository(host: "gitlab.com", owner: "group", name: "project")
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("cbm-clone-\(UUID().uuidString)")
+        .appendingPathComponent("with space")
+    let path = root.path(percentEncoded: false)
+    defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
+
+    let _ = executor.clone(
+        repository: repo,
+        commandTemplate: "git clone {repo}.git",
+        cloneDirectoryPath: path
+    )
+
+    #expect(runner.recordedCommand == "/bin/zsh")
+    #expect(runner.recordedArguments == ["-lc", "cd '\(path)' && git clone https://gitlab.com/group/project.git"])
+    #expect(FileManager.default.fileExists(atPath: path))
 }

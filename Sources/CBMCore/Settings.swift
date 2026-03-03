@@ -15,6 +15,7 @@ public enum AppLanguage: String, CaseIterable, Codable, Sendable {
 public struct AppSettings: Equatable, Sendable {
     public static let cloneCommandPlaceholder = "{repo}"
     public static let defaultCloneCommandTemplate = "git clone {repo}.git"
+    public static let defaultCloneDirectoryPath = "~/Documents/cbm/repos"
 
     public var monitoringEnabled: Bool
     public var notificationsEnabled: Bool
@@ -26,6 +27,7 @@ public struct AppSettings: Equatable, Sendable {
     public var outputDirectoryPath: String
     public var repositoryDomains: [String]
     public var cloneCommandTemplate: String
+    public var cloneDirectoryPath: String
     public var language: AppLanguage
 
     public init(
@@ -39,6 +41,7 @@ public struct AppSettings: Equatable, Sendable {
         outputDirectoryPath: String = DailyMarkdownStore.defaultDirectoryPath,
         repositoryDomains: [String] = ["github.com", "gitlab.com"],
         cloneCommandTemplate: String = AppSettings.defaultCloneCommandTemplate,
+        cloneDirectoryPath: String = AppSettings.defaultCloneDirectoryPath,
         language: AppLanguage = .zhHans
     ) {
         self.monitoringEnabled = monitoringEnabled
@@ -51,6 +54,7 @@ public struct AppSettings: Equatable, Sendable {
         self.outputDirectoryPath = outputDirectoryPath
         self.repositoryDomains = Self.normalizeDomains(repositoryDomains)
         self.cloneCommandTemplate = Self.normalizeCloneCommandTemplate(cloneCommandTemplate)
+        self.cloneDirectoryPath = Self.normalizeDirectoryPath(cloneDirectoryPath, fallback: Self.defaultCloneDirectoryPath)
         self.language = language
     }
 
@@ -76,6 +80,11 @@ public struct AppSettings: Equatable, Sendable {
         }
         return trimmed
     }
+
+    public static func normalizeDirectoryPath(_ path: String, fallback: String) -> String {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
 }
 
 public protocol SettingsStoring {
@@ -95,6 +104,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let outputDirectoryPath = "cbm.outputDirectoryPath"
         static let repositoryDomains = "cbm.repositoryDomains"
         static let cloneCommandTemplate = "cbm.cloneCommandTemplate"
+        static let cloneDirectoryPath = "cbm.cloneDirectoryPath"
         static let language = "cbm.language"
     }
 
@@ -120,6 +130,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
             outputDirectoryPath: defaults.string(forKey: Keys.outputDirectoryPath) ?? DailyMarkdownStore.defaultDirectoryPath,
             repositoryDomains: AppSettings.parseDomains(from: domainsRaw),
             cloneCommandTemplate: defaults.string(forKey: Keys.cloneCommandTemplate) ?? AppSettings.defaultCloneCommandTemplate,
+            cloneDirectoryPath: defaults.string(forKey: Keys.cloneDirectoryPath) ?? AppSettings.defaultCloneDirectoryPath,
             language: language
         )
     }
@@ -135,6 +146,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.outputDirectoryPath, forKey: Keys.outputDirectoryPath)
         defaults.set(settings.repositoryDomains.joined(separator: ","), forKey: Keys.repositoryDomains)
         defaults.set(settings.cloneCommandTemplate, forKey: Keys.cloneCommandTemplate)
+        defaults.set(settings.cloneDirectoryPath, forKey: Keys.cloneDirectoryPath)
         defaults.set(settings.language.rawValue, forKey: Keys.language)
     }
 }
