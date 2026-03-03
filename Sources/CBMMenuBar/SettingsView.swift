@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var language: AppLanguage = .zhHans
     @State private var repositoryDomainsText = ""
     @State private var cloneCommandTemplateText = ""
+    @State private var cloneDirectoryPath = ""
     @State private var isInitialized = false
 
     var body: some View {
@@ -131,6 +132,29 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                VStack(alignment: .leading, spacing: 8) {
+                    fieldHeader(
+                        title: model.text(.cloneDirectory),
+                        help: local(
+                            "仓库克隆时的默认工作目录（会自动创建）。",
+                            "Default working directory for clone commands (created automatically)."
+                        )
+                    )
+                    Text(cloneDirectoryPath)
+                        .font(.system(size: 12, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .background(Color.secondary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                    Button(model.text(.chooseDirectory)) {
+                        if let path = model.pickOutputDirectory(startingPath: cloneDirectoryPath) {
+                            cloneDirectoryPath = path
+                        }
+                    }
+                }
+
                 if isDirty {
                     HStack {
                         Spacer()
@@ -168,6 +192,7 @@ struct SettingsView: View {
             outputDirectoryPath: outputDirectoryPath,
             repositoryDomains: fallbackDomains,
             cloneCommandTemplate: cloneCommandTemplateText,
+            cloneDirectoryPath: cloneDirectoryPath,
             language: language
         )
     }
@@ -189,6 +214,7 @@ struct SettingsView: View {
         language = current.language
         repositoryDomainsText = current.repositoryDomains.joined(separator: "\n")
         cloneCommandTemplateText = current.cloneCommandTemplate
+        cloneDirectoryPath = current.cloneDirectoryPath
     }
 
     @ViewBuilder

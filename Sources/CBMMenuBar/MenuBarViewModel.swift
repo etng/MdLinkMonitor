@@ -440,6 +440,7 @@ final class MenuBarViewModel: ObservableObject {
         let allowMultiple = settingsSnapshot.allowMultipleLinks
         let repositoryDomains = Set(settingsSnapshot.repositoryDomains)
         let cloneCommandTemplate = settingsSnapshot.cloneCommandTemplate
+        let cloneDirectoryPath = settingsSnapshot.cloneDirectoryPath
         let orchestrator = self.orchestrator
 
         captureProcessingQueue.async { [weak self] in
@@ -449,6 +450,7 @@ final class MenuBarViewModel: ObservableObject {
                 allowMultipleLinks: allowMultiple,
                 repositoryDomains: repositoryDomains,
                 cloneCommandTemplate: cloneCommandTemplate,
+                cloneDirectoryPath: cloneDirectoryPath,
                 store: store
             )
             let writtenPath = store.todayFileURL().path(percentEncoded: false)

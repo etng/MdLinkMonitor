@@ -32,6 +32,7 @@ public final class ClipboardCaptureOrchestrator: @unchecked Sendable {
         allowMultipleLinks: Bool,
         repositoryDomains: Set<String>,
         cloneCommandTemplate: String = AppSettings.defaultCloneCommandTemplate,
+        cloneDirectoryPath: String? = nil,
         store: DailyMarkdownStore,
         date: Date = Date()
     ) -> CaptureProcessResult {
@@ -68,7 +69,8 @@ public final class ClipboardCaptureOrchestrator: @unchecked Sendable {
                     if let repository = capture.repository {
                         let cloneResult = cloneExecutor.clone(
                             repository: repository,
-                            commandTemplate: cloneCommandTemplate
+                            commandTemplate: cloneCommandTemplate,
+                            cloneDirectoryPath: cloneDirectoryPath
                         )
                         if cloneResult.isSuccess {
                             result.clonedCount += 1

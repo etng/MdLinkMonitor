@@ -52,6 +52,7 @@ struct CBMCLI {
         print("launch_at_login=\(settings.launchAtLogin)")
         print("output_directory=\(settings.outputDirectoryPath)")
         print("clone_command_template=\(settings.cloneCommandTemplate)")
+        print("clone_directory=\(settings.cloneDirectoryPath)")
         print("language=\(settings.language.rawValue)")
     }
 
