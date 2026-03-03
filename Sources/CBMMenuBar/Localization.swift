@@ -44,6 +44,7 @@ enum L10nKey {
     case noFileForDate
     case todayLogs
     case checkForUpdates
+    case updateNow
     case aboutHeadline
     case aboutDescription
 }
@@ -95,6 +96,7 @@ enum AppLocalizer {
             case .noFileForDate: return "所选日期暂无记录"
             case .todayLogs: return "今日日志（自动刷新）"
             case .checkForUpdates: return "检查更新"
+            case .updateNow: return "立即更新"
             case .aboutHeadline: return "帮助"
             case .aboutDescription: return "使用说明"
             }
@@ -142,6 +144,7 @@ enum AppLocalizer {
             case .noFileForDate: return "No record for selected date"
             case .todayLogs: return "Today's Logs (Auto Refresh)"
             case .checkForUpdates: return "Check for Updates"
+            case .updateNow: return "Update Now"
             case .aboutHeadline: return "Help"
             case .aboutDescription: return "Usage Guide"
             }
