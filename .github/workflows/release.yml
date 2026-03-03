@@ -125,11 +125,9 @@ jobs:
             echo "## Release ${TAG}"
             echo
             if [[ -n "$PREV_TAG" ]]; then
-              echo "- Range: \\`${PREV_TAG}..${TAG}\\`"
               echo "- Compare: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
             else
-              echo "- Range: first tagged release"
-              echo "- Compare: https://github.com/${REPO}/releases/tag/${TAG}"
+              echo "- Details: https://github.com/${REPO}/releases/tag/${TAG}"
             fi
             echo
             echo "## Changes"
