@@ -18,13 +18,14 @@ English version: [prd.md](./prd.md)
 4. 作为用户，我希望同一天内重复复制同一链接不会重复写入，仓库链接也不会重复 clone。
 5. 作为用户，我希望可选开启“多链接处理”模式。
 6. 作为用户，我希望可配置仓库域名（例如 `github.com`、`gitlab.com`）。
-7. 作为用户，我希望把配置项放到独立设置窗口，而不是全挤在菜单里。
-8. 作为用户，我希望在菜单里快速打开近期文件并预览。
-9. 作为用户，我希望在“当天预览”里看到可折叠且自动刷新的日志面板方便排查。
-10. 作为用户，我希望可选开机启动。
-11. 作为用户，我希望默认中文界面，同时可切换英文。
-12. 作为用户，我希望通过 CLI 获取今天的 markdown 路径或内容。
-13. 作为用户，我希望使用 Sparkle 2 进行应用更新（非 App Store 分发）。
+7. 作为用户，我希望可配置默认克隆目录。
+8. 作为用户，我希望把配置项放到独立设置窗口，而不是全挤在菜单里。
+9. 作为用户，我希望在菜单里快速打开近期文件并预览。
+10. 作为用户，我希望在“当天预览”里看到可折叠且自动刷新的日志面板方便排查。
+11. 作为用户，我希望可选开机启动。
+12. 作为用户，我希望默认中文界面，同时可切换英文。
+13. 作为用户，我希望通过 CLI 获取今天的 markdown 路径或内容。
+14. 作为用户，我希望使用 Sparkle 2 进行应用更新（非 App Store 分发）。
 
 ## 4. 功能需求
 
@@ -72,6 +73,7 @@ English version: [prd.md](./prd.md)
 - 模板必须包含 `{repo}` 占位符。
 - `{repo}` 为不带 `.git` 的规范化 HTTPS URL。
 - 默认模板为：`git clone {repo}.git`。
+- 克隆目录可配置，默认：`~/Documents/cbm/repos`。
 - 非仓库链接只写入，不 clone。
 
 ### 4.7 UI 与设置
@@ -88,6 +90,7 @@ English version: [prd.md](./prd.md)
   - Allow Multiple Links
   - Launch at Login
   - Output Directory
+  - Clone Directory
   - Language（中文 / English）
   - Repository Domains 编辑与应用
   - Clone Command Template 编辑与应用

@@ -11,6 +11,7 @@ When monitoring is enabled, copied links in `[label](link)` format are processed
 3. Run your clone command template for recognized repositories.
 
 Default clone template: `git clone {repo}.git`
+Default clone directory: `~/Documents/cbm/repos`
 
 ## What It Does
 
@@ -18,6 +19,7 @@ Default clone template: `git clone {repo}.git`
 - Daily de-duplication for markdown append and clone.
 - Supports repository domains like `github.com`, `gitlab.com`, and custom hosts.
 - Supports custom clone command template with `{repo}` placeholder.
+- Supports configurable clone working directory.
 - Keeps daily logs next to daily markdown files.
 - Main window includes markdown preview, calendar jump, and live log panel.
 - Built-in Sparkle 2 update channel (non-App Store).
@@ -50,6 +52,7 @@ If Gatekeeper warns that the app cannot be verified, right-click `MdMonitor.app`
    - output directory
    - repository domains
    - clone command template
+   - clone directory
    - language / notifications / launch-at-login
 
 ## Troubleshooting
