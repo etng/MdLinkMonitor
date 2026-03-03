@@ -36,10 +36,6 @@ final class SparkleUpdaterManager: NSObject, AppUpdaterManaging {
             }
         }
 
-        guard updaterController.updater.canCheckForUpdates else {
-            return .skipped(reason: "updater not ready to check updates")
-        }
-
         updaterController.updater.checkForUpdates()
         return .requested
     }

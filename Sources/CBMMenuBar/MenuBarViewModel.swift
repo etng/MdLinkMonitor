@@ -394,7 +394,13 @@ final class MenuBarViewModel: ObservableObject {
             return .requested
         case .skipped(let reason):
             if userInitiated {
-                logger.log(.warning, "Update check skipped silently: \(reason)")
+                let message = local(
+                    "检查更新暂不可用，请稍后重试",
+                    "Update check is temporarily unavailable. Please try again."
+                )
+                setStatus(message)
+                showToast(message)
+                logger.log(.warning, "Update check skipped: \(reason)")
             } else {
                 logger.log(.warning, "Automatic update check skipped: \(reason)")
             }
