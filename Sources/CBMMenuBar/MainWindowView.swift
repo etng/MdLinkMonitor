@@ -195,10 +195,11 @@ struct MainWindowView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 8)
                     } else {
-                        Markdown(content)
+                        Text(attributedMarkdown(content))
                             .font(.system(size: markdownFontSize))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 4)
+                            .textSelection(.enabled)
                     }
 
                     Color.clear
@@ -251,8 +252,8 @@ struct MainWindowView: View {
                                 .font(.system(size: 12, weight: .regular, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id("today-log-top")
+                                .textSelection(.enabled)
                         }
-                        .textSelection(.enabled)
                         .frame(minHeight: 120, maxHeight: 200)
                         .onChange(of: todayLogContent) { _ in
                             withAnimation(.easeOut(duration: 0.2)) {
@@ -551,6 +552,13 @@ struct MainWindowView: View {
         let lines = raw.split(whereSeparator: \.isNewline).map(String.init)
         guard !lines.isEmpty else { return "" }
         return lines.suffix(400).reversed().joined(separator: "\n")
+    }
+
+    private func attributedMarkdown(_ markdown: String) -> AttributedString {
+        if let attributed = try? AttributedString(markdown: markdown) {
+            return attributed
+        }
+        return AttributedString(markdown)
     }
 
     private func scrollMarkdownToBottom(proxy: ScrollViewProxy, animated: Bool) {
