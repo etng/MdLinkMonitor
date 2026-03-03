@@ -18,13 +18,14 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 4. As a user, I want daily de-duplication so repeated copy does not create duplicate lines or duplicate clone actions on the same day.
 5. As a user, I want optional multi-link parsing for clipboard content with multiple Markdown links.
 6. As a user, I want to configure repository domains (for example `github.com`, `gitlab.com`).
-7. As a user, I want a dedicated Settings window instead of placing all settings in the menu.
-8. As a user, I want to open and preview recent daily files from the menu.
-9. As a user, in today's preview I want a collapsible live log panel for troubleshooting.
-10. As a user, I want optional launch at login.
-11. As a user, I want Chinese UI by default and English as optional language.
-12. As a user, I want command line access to today's markdown path/content.
-13. As a user, I want in-app updates via Sparkle 2 (non-App Store).
+7. As a user, I want a configurable default clone directory.
+8. As a user, I want a dedicated Settings window instead of placing all settings in the menu.
+9. As a user, I want to open and preview recent daily files from the menu.
+10. As a user, in today's preview I want a collapsible live log panel for troubleshooting.
+11. As a user, I want optional launch at login.
+12. As a user, I want Chinese UI by default and English as optional language.
+13. As a user, I want command line access to today's markdown path/content.
+14. As a user, I want in-app updates via Sparkle 2 (non-App Store).
 
 ## 4. Functional Requirements
 
@@ -72,6 +73,7 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 - Template must include `{repo}` placeholder.
 - `{repo}` is normalized HTTPS URL without `.git` suffix.
 - Default template: `git clone {repo}.git`.
+- Clone directory is configurable; default is `~/Documents/cbm/repos`.
 - Non-repository links must be appended but never cloned.
 
 ### 4.7 UI and Settings
@@ -88,6 +90,7 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
   - Allow Multiple Links
   - Launch at Login
   - Output Directory
+  - Clone Directory
   - Language (中文 / English)
   - Repository Domains editor + apply action
   - Clone command template editor + apply action
