@@ -14,7 +14,7 @@ struct MainWindowView: View {
     @State private var selectedFilePath: String?
     @State private var content = ""
 
-    @State private var showLogPanel = false
+    @State private var showLogPanel = true
     @State private var todayLogContent = ""
 
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
