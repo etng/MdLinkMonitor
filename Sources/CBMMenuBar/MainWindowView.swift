@@ -311,7 +311,10 @@ struct MainWindowView: View {
             Button {
                 model.checkForUpdates()
             } label: {
-                Label(model.text(.checkForUpdates), systemImage: "arrow.triangle.2.circlepath")
+                Label(
+                    model.hasUpdateBadge ? model.text(.updateNow) : model.text(.checkForUpdates),
+                    systemImage: model.hasUpdateBadge ? "arrow.down.circle.fill" : "arrow.triangle.2.circlepath"
+                )
             }
             .buttonStyle(.borderedProminent)
 
