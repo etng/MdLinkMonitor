@@ -125,8 +125,10 @@ public struct GitC1CloneExecutor {
     }
 
     private func composeCommandLine(baseCommandLine: String, cloneDirectoryPath: String?) throws -> String {
+        var commandLine = baseCommandLine
+
         guard let cloneDirectory = normalizedCloneDirectoryPath(cloneDirectoryPath) else {
-            return baseCommandLine
+            return commandLineWithPreferredPath(commandLine)
         }
 
         do {
@@ -141,7 +143,8 @@ public struct GitC1CloneExecutor {
         }
 
         let escapedDirectory = shellEscape(cloneDirectory)
-        return "cd \(escapedDirectory) && \(baseCommandLine)"
+        commandLine = "cd \(escapedDirectory) && \(baseCommandLine)"
+        return commandLineWithPreferredPath(commandLine)
     }
 
     private func normalizedCloneDirectoryPath(_ path: String?) -> String? {
@@ -153,6 +156,13 @@ public struct GitC1CloneExecutor {
 
     private func shellEscape(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
+    }
+
+    private func commandLineWithPreferredPath(_ commandLine: String) -> String {
+        let userBin = NSString(string: "~/bin").expandingTildeInPath
+        let preferredPaths = [userBin, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+        let escapedPaths = preferredPaths.map(shellEscape).joined(separator: ":")
+        return "PATH=\(escapedPaths):\"$PATH\"; export PATH; \(commandLine)"
     }
 
     private func launchBackgroundClone(commandLine: String, repository: GitRepository) -> CommandExecutionResult {

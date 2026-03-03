@@ -213,25 +213,36 @@ struct MainWindowView: View {
                     guard currentFilePath == todayFilePath else { return }
                     scrollMarkdownToBottom(proxy: proxy, animated: false)
                 }
+                .textSelection(.enabled)
             }
 
             if currentFilePath == todayFilePath {
                 Divider()
 
-                Button {
-                    showLogPanel.toggle()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: showLogPanel ? "chevron.down.circle.fill" : "chevron.right.circle")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(model.text(.todayLogs))
-                            .font(.subheadline)
-                        Spacer()
+                HStack(spacing: 8) {
+                    Button {
+                        showLogPanel.toggle()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showLogPanel ? "chevron.down.circle.fill" : "chevron.right.circle")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text(model.text(.todayLogs))
+                                .font(.subheadline)
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+
+                    if showLogPanel {
+                        iconActionButton(
+                            systemName: "doc.on.doc",
+                            title: model.text(.copyLogs),
+                            action: copyTodayLogRaw
+                        )
+                    }
                 }
-                .buttonStyle(.plain)
 
                 if showLogPanel {
                     ScrollViewReader { proxy in
@@ -241,6 +252,7 @@ struct MainWindowView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id("today-log-top")
                         }
+                        .textSelection(.enabled)
                         .frame(minHeight: 120, maxHeight: 200)
                         .onChange(of: todayLogContent) { _ in
                             withAnimation(.easeOut(duration: 0.2)) {
@@ -526,6 +538,12 @@ struct MainWindowView: View {
     private func copyMarkdownRaw() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
+        model.showToast(model.text(.copied))
+    }
+
+    private func copyTodayLogRaw() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(todayLogContent, forType: .string)
         model.showToast(model.text(.copied))
     }
 
