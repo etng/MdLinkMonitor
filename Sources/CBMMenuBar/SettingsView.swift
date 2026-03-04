@@ -181,13 +181,15 @@ struct SettingsView: View {
                 if isDirty {
                     HStack {
                         Spacer()
-                        Button(model.text(.saveSettings)) {
+                        Button {
                             model.saveSettings(normalizedDraftSettings)
                             model.previewMainWindowPinBehavior(
                                 opacity: pinnedWindowOpacity,
                                 clickThrough: pinnedWindowClickThrough
                             )
                             syncFromModel()
+                        } label: {
+                            Label(model.text(.saveSettings), systemImage: "externaldrive.fill")
                         }
                         .buttonStyle(.borderedProminent)
                     }

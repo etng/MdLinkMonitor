@@ -42,6 +42,10 @@ final class MenuBarViewModel: ObservableObject {
         static let cachedLatestReleaseFetchedAt = "mdmonitor.update.cachedLatestReleaseFetchedAt"
     }
 
+    private enum WindowStateKeys {
+        static let mainWindowPinned = "mdmonitor.window.mainWindowPinned"
+    }
+
     private static let autoUpdateInitialDelay: TimeInterval = 60
     private static let autoUpdateCheckInterval: TimeInterval = 60 * 60 * 12
     private static let minimumAutoUpdateRescheduleInterval: TimeInterval = 60
@@ -65,6 +69,7 @@ final class MenuBarViewModel: ObservableObject {
         let loaded = settingsStore.load()
         self.settings = loaded
         self.statusText = AppLocalizer.text(.statusIdle, language: loaded.language)
+        self.isMainWindowPinned = defaults.object(forKey: WindowStateKeys.mainWindowPinned) as? Bool ?? false
         AppActivationPolicyManager.apply(showDockIcon: loaded.showDockIcon)
 
         let memoryLogger = InMemoryLogger()
@@ -86,7 +91,7 @@ final class MenuBarViewModel: ObservableObject {
         self.monitor = monitor
 
         logger.log(.info, "App started")
-        logEvent("MenuBarViewModel initialized, monitoring=\(loaded.monitoringEnabled)")
+        logEvent("MenuBarViewModel initialized, monitoring=\(loaded.monitoringEnabled), pinned=\(isMainWindowPinned)")
         reloadRecentFiles()
         restoreCachedReleaseNotes()
         scheduleAutoUpdateChecks()
@@ -385,6 +390,7 @@ final class MenuBarViewModel: ObservableObject {
     func setMainWindowPinned(_ pinned: Bool) {
         guard isMainWindowPinned != pinned else { return }
         isMainWindowPinned = pinned
+        defaults.set(pinned, forKey: WindowStateKeys.mainWindowPinned)
         applyMainWindowPinBehavior()
 
         let message = pinned ? local("主窗口已置顶", "Main window pinned") : local("主窗口已取消置顶", "Main window unpinned")
