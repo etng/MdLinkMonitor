@@ -16,6 +16,11 @@ struct MainWindowView: View {
 
     @State private var showLogPanel = true
     @State private var todayLogContent = ""
+    @StateObject private var settingsDraftCoordinator = SettingsDraftCoordinator()
+    @State private var pendingPanelSwitch: MainWindowPanel?
+    @State private var showUnsavedSettingsAlert = false
+    @State private var suppressPanelGuard = false
+    @State private var lastObservedPanel: MainWindowPanel = .preview
 
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     private let markdownBottomAnchor = "markdown-bottom-anchor"
@@ -45,7 +50,10 @@ struct MainWindowView: View {
         }
         .frame(minWidth: 980, minHeight: 700)
         .animation(.easeOut(duration: 0.18), value: model.toastMessage)
-        .onAppear(perform: reloadFilesAndContent)
+        .onAppear {
+            lastObservedPanel = model.mainWindowPanel
+            reloadFilesAndContent()
+        }
         .onChange(of: selectedDate) { _ in
             syncSelectedFileForSelectedDate()
         }
@@ -61,6 +69,24 @@ struct MainWindowView: View {
         }
         .onChange(of: model.mainWindowNavigationToken) { _ in
             applyNavigationRequest()
+        }
+        .onChange(of: model.mainWindowPanel) { panel in
+            handleMainWindowPanelChange(panel)
+        }
+        .alert(local("检测到未保存更改", "Unsaved changes"), isPresented: $showUnsavedSettingsAlert) {
+            Button(local("保存并继续", "Save & Continue")) {
+                settingsDraftCoordinator.save()
+                continuePendingPanelSwitch()
+            }
+            Button(local("恢复并继续", "Discard & Continue"), role: .destructive) {
+                settingsDraftCoordinator.discard()
+                continuePendingPanelSwitch()
+            }
+            Button(local("取消", "Cancel"), role: .cancel) {
+                pendingPanelSwitch = nil
+            }
+        } message: {
+            Text(local("设置里有未保存内容，是否先保存？", "Settings contain unsaved changes. Save before leaving?"))
         }
     }
 
@@ -123,7 +149,7 @@ struct MainWindowView: View {
             case .calendar:
                 calendarPanel
             case .settings:
-                SettingsView(model: model)
+                SettingsView(model: model, draftCoordinator: settingsDraftCoordinator)
             case .updates:
                 updatesPanel
             case .help:
@@ -371,13 +397,7 @@ struct MainWindowView: View {
         let isActive = panel == selectedPanel
 
         return Button {
-            if panel == .preview {
-                model.showBackToCalendarInPreview = false
-            }
-            if panel == .updates {
-                model.loadLatestReleaseNotes(force: true)
-            }
-            model.mainWindowPanel = panel
+            requestPanelSwitch(to: panel)
         } label: {
             Image(systemName: panel.symbolName)
                 .font(.system(size: 17, weight: .semibold))
@@ -423,6 +443,53 @@ struct MainWindowView: View {
     private func goToToday() {
         selectedDate = Date()
         syncSelectedFileForSelectedDate()
+    }
+
+    private func requestPanelSwitch(to panel: MainWindowPanel) {
+        guard panel != selectedPanel else { return }
+        if selectedPanel == .settings, settingsDraftCoordinator.hasUnsavedChanges {
+            pendingPanelSwitch = panel
+            showUnsavedSettingsAlert = true
+            return
+        }
+        applyPanelSwitch(panel)
+    }
+
+    private func continuePendingPanelSwitch() {
+        guard let panel = pendingPanelSwitch else { return }
+        pendingPanelSwitch = nil
+        applyPanelSwitch(panel)
+    }
+
+    private func applyPanelSwitch(_ panel: MainWindowPanel) {
+        if panel == .preview {
+            model.showBackToCalendarInPreview = false
+        }
+        if panel == .updates {
+            model.loadLatestReleaseNotes(force: true)
+        }
+        model.mainWindowPanel = panel
+    }
+
+    private func handleMainWindowPanelChange(_ newPanel: MainWindowPanel) {
+        if suppressPanelGuard {
+            lastObservedPanel = newPanel
+            return
+        }
+
+        if lastObservedPanel == .settings,
+           newPanel != .settings,
+           settingsDraftCoordinator.hasUnsavedChanges {
+           pendingPanelSwitch = newPanel
+           showUnsavedSettingsAlert = true
+           suppressPanelGuard = true
+           model.mainWindowPanel = .settings
+            suppressPanelGuard = false
+            lastObservedPanel = .settings
+            return
+        }
+
+        lastObservedPanel = newPanel
     }
 
     private var currentPreviewDateText: String {
