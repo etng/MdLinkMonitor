@@ -135,7 +135,13 @@ struct AboutView: View {
             4. 日历面板中，带书签图标的日期表示当天有记录；双击日期可直接打开该天预览。
             5. 设置面板可调整输出目录、仓库域名、监控开关、通知和字体等偏好。
             6. 日志写入与 markdown 同目录，按天保存为 `logs_YYYYMMDD.log`，用于排查问题。
-            7. 项目使用 MIT 许可证，第三方组件鸣谢请见仓库文档。
+            7. 可在 **设置 > 系统 > 安装 mdm 命令** 安装命令行工具，必要时会请求管理员授权。
+            8. `mdm` 常用命令：
+               - `mdm today --path`：输出今日 markdown 路径
+               - `mdm today --print`：输出今日 markdown 内容
+               - `mdm status`：输出当前配置快照
+               - `mdm help`：查看帮助
+            9. 项目使用 MIT 许可证，第三方组件鸣谢请见仓库文档。
             """
         case .en:
             return """
@@ -147,7 +153,13 @@ struct AboutView: View {
             4. In the calendar panel, bookmarked days indicate available records. Double-click a day to jump to preview.
             5. Use Settings to configure output directory, repository domains, monitoring, notifications, and font preferences.
             6. Logs are saved next to markdown files as `logs_YYYYMMDD.log` for diagnostics.
-            7. The project is MIT licensed. See repository docs for third-party acknowledgements.
+            7. Install the CLI from **Settings > System > Install mdm Command** (macOS may request administrator authorization).
+            8. Common `mdm` commands:
+               - `mdm today --path`: print today's markdown path
+               - `mdm today --print`: print today's markdown content
+               - `mdm status`: print current settings snapshot
+               - `mdm help`: show command help
+            9. The project is MIT licensed. See repository docs for third-party acknowledgements.
             """
         }
     }

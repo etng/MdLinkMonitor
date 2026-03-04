@@ -118,6 +118,7 @@ struct SettingsView: View {
         .frame(minWidth: 620, minHeight: 620)
         .onAppear {
             syncFromModel()
+            model.refreshCommandLineToolInstallationState()
             isInitialized = true
             applyPreviewPinStyle()
             draftCoordinator.saveChanges = { saveDraft() }
@@ -393,18 +394,24 @@ struct SettingsView: View {
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(.secondary)
 
-                    Button {
-                        model.installCommandLineTool()
-                    } label: {
-                        Label(
-                            model.isInstallingCommandLineTool
-                                ? local("正在安装 mdm…", "Installing mdm...")
-                                : local("安装 mdm 命令", "Install mdm Command"),
-                            systemImage: model.isInstallingCommandLineTool ? "hourglass.circle" : "terminal"
-                        )
+                    if model.isCommandLineToolInstalled {
+                        Label(local("mdm 已安装", "mdm installed"), systemImage: "checkmark.seal.fill")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button {
+                            model.installCommandLineTool()
+                        } label: {
+                            Label(
+                                model.isInstallingCommandLineTool
+                                    ? local("正在安装 mdm…", "Installing mdm...")
+                                    : local("安装 mdm 命令", "Install mdm Command"),
+                                systemImage: model.isInstallingCommandLineTool ? "hourglass.circle" : "terminal"
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isInstallingCommandLineTool)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(model.isInstallingCommandLineTool)
                 }
             }
 
