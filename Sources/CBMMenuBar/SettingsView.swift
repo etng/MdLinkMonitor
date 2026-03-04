@@ -218,7 +218,7 @@ struct SettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: sectionSymbol(section))
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.secondary)
                 Text(sectionTitle(section))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -231,10 +231,10 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+                .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
         )
     }
 
