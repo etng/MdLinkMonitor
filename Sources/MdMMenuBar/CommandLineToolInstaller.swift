@@ -10,6 +10,11 @@ enum CommandLineToolInstaller {
     static let executableName = "mdm"
     static let installLinkPath = "/usr/local/bin/mdm"
 
+    static func isInstalled(linkPath: String = installLinkPath) -> Bool {
+        let path = NSString(string: linkPath).expandingTildeInPath
+        return FileManager.default.isExecutableFile(atPath: path)
+    }
+
     static func findBundledExecutablePath() -> String? {
         let fileManager = FileManager.default
         let executableDir = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()

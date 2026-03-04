@@ -12,6 +12,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var isLoadingLatestReleaseNotes = false
     @Published private(set) var hasUpdateBadge = false
     @Published private(set) var isInstallingCommandLineTool = false
+    @Published private(set) var isCommandLineToolInstalled = false
     @Published private(set) var isMainWindowPinned = false
     @Published var toastMessage: String?
     @Published var mainWindowPanel: MainWindowPanel = .preview
@@ -93,6 +94,7 @@ final class MenuBarViewModel: ObservableObject {
 
         logger.log(.info, "App started")
         logEvent("MenuBarViewModel initialized, monitoring=\(loaded.monitoringEnabled), pinned=\(isMainWindowPinned)")
+        refreshCommandLineToolInstallationState()
         reloadRecentFiles()
         restoreCachedReleaseNotes()
         scheduleAutoUpdateChecks()
@@ -112,6 +114,10 @@ final class MenuBarViewModel: ObservableObject {
 
     var commandLineInstallPath: String {
         CommandLineToolInstaller.installLinkPath
+    }
+
+    func refreshCommandLineToolInstallationState() {
+        isCommandLineToolInstalled = CommandLineToolInstaller.isInstalled(linkPath: commandLineInstallPath)
     }
 
     func updateMonitoringEnabled(_ enabled: Bool) {
@@ -271,6 +277,9 @@ final class MenuBarViewModel: ObservableObject {
 
     func installCommandLineTool() {
         guard !isInstallingCommandLineTool else { return }
+        if isCommandLineToolInstalled {
+            return
+        }
         logEvent("UI action installCommandLineTool")
 
         guard let executablePath = CommandLineToolInstaller.findBundledExecutablePath() else {
@@ -295,6 +304,7 @@ final class MenuBarViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isInstallingCommandLineTool = false
+                self.refreshCommandLineToolInstallationState()
 
                 switch result {
                 case .installed(let path, let requiredAdmin):

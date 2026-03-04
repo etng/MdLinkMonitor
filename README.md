@@ -45,9 +45,17 @@ If Gatekeeper warns that the app cannot be verified, right-click `MdMonitor.app`
 - Open **Settings -> System -> Install mdm Command**.
 - The app installs `mdm` to `/usr/local/bin/mdm`.
 - If permission is required, macOS will ask for administrator authorization.
+- After successful installation, Settings shows `mdm installed` and hides the install button.
 - Verify in Terminal:
   ```bash
   mdm help
+  ```
+- Common commands:
+  ```bash
+  mdm today --path   # print today's links markdown path
+  mdm today --print  # print today's markdown content
+  mdm status         # print current settings snapshot
+  mdm help           # print command help
   ```
 
 ## Use
