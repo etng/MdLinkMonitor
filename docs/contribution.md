@@ -13,7 +13,7 @@ Commands:
 swift build
 swift test
 swift run MdMonitor
-swift run cbm help
+swift run mdm help
 ```
 
 ## Packaging

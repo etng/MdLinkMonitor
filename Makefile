@@ -1,8 +1,10 @@
 APP_NAME := MdMonitor
 PRODUCT := MdMonitor
+CLI_PRODUCT := mdm
 BUILD_DIR := build
 DIST_DIR := dist
 RELEASE_BIN := .build/release/$(PRODUCT)
+CLI_RELEASE_BIN := .build/release/$(CLI_PRODUCT)
 SPARKLE_FRAMEWORK_SRC := .build/release/Sparkle.framework
 APP_DIR := $(DIST_DIR)/$(APP_NAME).app
 DMG_PATH := $(DIST_DIR)/$(APP_NAME).dmg
@@ -17,7 +19,7 @@ REMOVE_DUPLICATE_COPY ?= 1
 help:
 	@echo "make test          # run unit tests"
 	@echo "make run           # run menu bar app (debug)"
-	@echo "make release       # build release binary"
+	@echo "make release       # build release binaries (app + cli)"
 	@echo "make icon          # generate AppIcon.icns"
 	@echo "make app           # create dist/MdMonitor.app"
 	@echo "make dmg           # create dist/MdMonitor.dmg"
@@ -36,6 +38,7 @@ run:
 
 release:
 	swift build --disable-sandbox -c release --product $(PRODUCT)
+	swift build --disable-sandbox -c release --product $(CLI_PRODUCT)
 
 icon:
 	rm -rf $(ICONSET_DIR)
@@ -61,7 +64,9 @@ icon:
 app: release icon
 	mkdir -p $(APP_DIR)/Contents/MacOS $(APP_DIR)/Contents/Resources $(APP_DIR)/Contents/Frameworks
 	cp $(RELEASE_BIN) $(APP_DIR)/Contents/MacOS/$(APP_NAME)
+	cp $(CLI_RELEASE_BIN) $(APP_DIR)/Contents/Resources/$(CLI_PRODUCT)
 	chmod +x $(APP_DIR)/Contents/MacOS/$(APP_NAME)
+	chmod +x $(APP_DIR)/Contents/Resources/$(CLI_PRODUCT)
 	cp packaging/Info.plist $(APP_DIR)/Contents/Info.plist
 	@if [ -f $(ICNS_PATH) ]; then cp $(ICNS_PATH) $(APP_DIR)/Contents/Resources/AppIcon.icns; fi
 	@if [ -d $(SPARKLE_FRAMEWORK_SRC) ]; then \

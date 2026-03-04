@@ -40,6 +40,16 @@ Default clone directory: `~/Documents/cbm/repos`
 
 If Gatekeeper warns that the app cannot be verified, right-click `MdMonitor.app` -> `Open` -> confirm `Open`.
 
+## Command Line (Optional)
+
+- Open **Settings -> System -> Install mdm Command**.
+- The app installs `mdm` to `/usr/local/bin/mdm`.
+- If permission is required, macOS will ask for administrator authorization.
+- Verify in Terminal:
+  ```bash
+  mdm help
+  ```
+
 ## Use
 
 1. Click the menu bar icon and keep `Enable Monitoring` on.
