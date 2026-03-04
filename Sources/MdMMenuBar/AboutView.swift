@@ -1,4 +1,4 @@
-import CBMCore
+import MdMCore
 import MarkdownUI
 import SwiftUI
 import AppKit

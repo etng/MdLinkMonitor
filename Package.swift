@@ -10,8 +10,8 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "CBMCore",
-            targets: ["CBMCore"]
+            name: "MdMCore",
+            targets: ["MdMCore"]
         ),
         .executable(
             name: "cbm",
@@ -28,27 +28,27 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CBMCore"
+            name: "MdMCore"
         ),
         .executableTarget(
             name: "cbm",
-            dependencies: ["CBMCore"]
+            dependencies: ["MdMCore"]
         ),
         .executableTarget(
             name: "MdMonitor",
             dependencies: [
-                "CBMCore",
+                "MdMCore",
                 .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             ],
-            path: "Sources/CBMMenuBar",
+            path: "Sources/MdMMenuBar",
             resources: [
                 .process("Resources"),
             ]
         ),
         .testTarget(
-            name: "CBMCoreTests",
-            dependencies: ["CBMCore"]
+            name: "MdMCoreTests",
+            dependencies: ["MdMCore"]
         ),
     ]
 )

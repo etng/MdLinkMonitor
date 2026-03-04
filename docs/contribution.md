@@ -49,5 +49,5 @@ Set repository secrets before release:
 
 ## Debug Diagnostics
 
-- Verbose event logging switch: `Sources/CBMMenuBar/Diagnostics.swift`
+- Verbose event logging switch: `Sources/MdMMenuBar/Diagnostics.swift`
 - Debug logs are written to daily log files next to markdown output.

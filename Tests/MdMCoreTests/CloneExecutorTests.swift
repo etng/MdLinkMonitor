@@ -1,5 +1,5 @@
 import Testing
-@testable import CBMCore
+@testable import MdMCore
 import Foundation
 
 private final class MockRunner: CommandRunning {

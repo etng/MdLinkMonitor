@@ -1,4 +1,4 @@
-import CBMCore
+import MdMCore
 import Foundation
 
 enum L10nKey {

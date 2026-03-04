@@ -1,5 +1,5 @@
 import Testing
-@testable import CBMCore
+@testable import MdMCore
 
 @Test
 func markdownLinkExtractionSingle() {

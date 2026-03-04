@@ -1,4 +1,4 @@
-# CBM Product Requirements Document
+# MdM Product Requirements Document
 
 中文版: [prd.zh-CN.md](./prd.zh-CN.md)
 
@@ -12,9 +12,9 @@ Build a macOS menu bar utility to collect Markdown links copied from clipboard i
 
 ## 3. User Stories
 
-1. As a user, I want CBM to run in the menu bar and be easy to enable/disable.
+1. As a user, I want MdM to run in the menu bar and be easy to enable/disable.
 2. As a user, when I copy `[label](link)` I want it appended into daily notes.
-3. As a user, I want CBM to run my configured clone command template automatically for recognized repository links.
+3. As a user, I want MdM to run my configured clone command template automatically for recognized repository links.
 4. As a user, I want daily de-duplication so repeated copy does not create duplicate lines or duplicate clone actions on the same day.
 5. As a user, I want optional multi-link parsing for clipboard content with multiple Markdown links.
 6. As a user, I want to configure repository domains (for example `github.com`, `gitlab.com`).
