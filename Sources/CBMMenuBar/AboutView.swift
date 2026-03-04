@@ -97,11 +97,18 @@ struct AboutView: View {
     }
 
     private func loadDonationImage(name: String, ext: String) -> NSImage? {
-        guard let url = Bundle.module.url(
-            forResource: name,
-            withExtension: ext,
-            subdirectory: "donations"
-        ) else {
+        let url =
+            Bundle.module.url(
+                forResource: name,
+                withExtension: ext,
+                subdirectory: "donations"
+            )
+            ?? Bundle.module.url(
+                forResource: name,
+                withExtension: ext
+            )
+
+        guard let url else {
             return nil
         }
         return NSImage(contentsOf: url)
