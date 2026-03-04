@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var allowMultipleLinks = false
     @State private var showDockIcon = true
     @State private var launchAtLogin = false
+    @State private var pinnedWindowOpacity = AppSettings.defaultPinnedWindowOpacity
+    @State private var pinnedWindowClickThrough = false
     @State private var previewMarkdownFontSize = 16.0
     @State private var previewCalendarScale = 1.15
     @State private var outputDirectoryPath = ""
@@ -49,6 +51,27 @@ struct SettingsView: View {
                     title: model.text(.launchAtLogin),
                     help: local("系统登录后自动启动 MdMonitor。", "Start MdMonitor automatically after user login."),
                     isOn: $launchAtLogin
+                )
+
+                sliderField(
+                    title: model.text(.pinWindowOpacity),
+                    help: local(
+                        "仅在主窗口置顶时生效，降低后可更容易观察被覆盖内容。",
+                        "Only effective when window is pinned. Lower values make underlying content easier to observe."
+                    ),
+                    valueText: "\(Int(pinnedWindowOpacity * 100))%",
+                    value: $pinnedWindowOpacity,
+                    range: 0.4...1.0,
+                    step: 0.05
+                )
+
+                toggleField(
+                    title: model.text(.pinWindowClickThrough),
+                    help: local(
+                        "开启后，置顶窗口会让鼠标事件穿透到下层应用。",
+                        "When enabled, pinned window lets mouse events pass through to underlying apps."
+                    ),
+                    isOn: $pinnedWindowClickThrough
                 )
 
                 sliderField(
@@ -193,6 +216,8 @@ struct SettingsView: View {
             repositoryDomains: fallbackDomains,
             cloneCommandTemplate: cloneCommandTemplateText,
             cloneDirectoryPath: cloneDirectoryPath,
+            pinnedWindowOpacity: pinnedWindowOpacity,
+            pinnedWindowClickThrough: pinnedWindowClickThrough,
             language: language
         )
     }
@@ -208,6 +233,8 @@ struct SettingsView: View {
         allowMultipleLinks = current.allowMultipleLinks
         showDockIcon = current.showDockIcon
         launchAtLogin = current.launchAtLogin
+        pinnedWindowOpacity = current.pinnedWindowOpacity
+        pinnedWindowClickThrough = current.pinnedWindowClickThrough
         previewMarkdownFontSize = current.previewMarkdownFontSize
         previewCalendarScale = current.previewCalendarScale
         outputDirectoryPath = current.outputDirectoryPath

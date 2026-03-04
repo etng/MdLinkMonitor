@@ -11,6 +11,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var latestReleaseNotesMarkdown: String = ""
     @Published private(set) var isLoadingLatestReleaseNotes = false
     @Published private(set) var hasUpdateBadge = false
+    @Published private(set) var isMainWindowPinned = false
     @Published var toastMessage: String?
     @Published var mainWindowPanel: MainWindowPanel = .preview
     @Published var showBackToCalendarInPreview = false
@@ -297,6 +298,10 @@ final class MenuBarViewModel: ObservableObject {
             fileLogger.baseDirectoryPath = next.outputDirectoryPath
             reloadRecentFiles()
         }
+        if previous.pinnedWindowOpacity != next.pinnedWindowOpacity ||
+            previous.pinnedWindowClickThrough != next.pinnedWindowClickThrough {
+            applyMainWindowPinBehavior()
+        }
 
         let message = local("配置已保存", "Settings saved")
         setStatus(message)
@@ -330,6 +335,7 @@ final class MenuBarViewModel: ObservableObject {
             showBackToCalendarInPreview = false
         }
         windowPresenter.showMainWindow(initialFilePath: filePath, model: self)
+        applyMainWindowPinBehavior()
 
         let message = local("已打开主窗口", "Main window opened")
         let withContext = message + ": \(filePath)"
@@ -369,6 +375,21 @@ final class MenuBarViewModel: ObservableObject {
     func reloadRecentFiles() {
         let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
         recentFiles = (try? store.listRecentDailyFiles(limit: 30)) ?? []
+    }
+
+    func toggleMainWindowPinned() {
+        setMainWindowPinned(!isMainWindowPinned)
+    }
+
+    func setMainWindowPinned(_ pinned: Bool) {
+        guard isMainWindowPinned != pinned else { return }
+        isMainWindowPinned = pinned
+        applyMainWindowPinBehavior()
+
+        let message = pinned ? local("主窗口已置顶", "Main window pinned") : local("主窗口已取消置顶", "Main window unpinned")
+        setStatus(message)
+        logger.log(.info, message)
+        showToast(message)
     }
 
     @discardableResult
@@ -666,6 +687,14 @@ final class MenuBarViewModel: ObservableObject {
     private func notifyIfEnabled(_ message: String) {
         guard settings.notificationsEnabled else { return }
         notifier.notify(title: text(.appTitle), body: message)
+    }
+
+    private func applyMainWindowPinBehavior() {
+        windowPresenter.updateMainWindowPinState(
+            isPinned: isMainWindowPinned,
+            pinnedOpacity: settings.pinnedWindowOpacity,
+            clickThroughWhenPinned: settings.pinnedWindowClickThrough
+        )
     }
 
     private func local(_ zhHans: String, _ en: String) -> String {

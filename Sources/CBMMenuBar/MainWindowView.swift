@@ -161,6 +161,12 @@ struct MainWindowView: View {
 
                 HStack(spacing: 8) {
                     iconActionButton(
+                        systemName: model.isMainWindowPinned ? "pin.fill" : "pin",
+                        title: model.isMainWindowPinned ? model.text(.unpinMainWindow) : model.text(.pinMainWindow),
+                        action: model.toggleMainWindowPinned
+                    )
+
+                    iconActionButton(
                         systemName: "arrow.clockwise",
                         title: model.text(.reload),
                         action: reloadFilesAndContent
@@ -214,7 +220,6 @@ struct MainWindowView: View {
                     guard currentFilePath == todayFilePath else { return }
                     scrollMarkdownToBottom(proxy: proxy, animated: false)
                 }
-                .textSelection(.enabled)
             }
 
             if currentFilePath == todayFilePath {

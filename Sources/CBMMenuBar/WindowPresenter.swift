@@ -6,6 +6,18 @@ import SwiftUI
 final class WindowPresenter: NSObject, NSWindowDelegate {
     private var mainWindow: NSWindow?
 
+    private struct PinStyle {
+        let isPinned: Bool
+        let pinnedOpacity: Double
+        let clickThroughWhenPinned: Bool
+    }
+
+    private var currentPinStyle = PinStyle(
+        isPinned: false,
+        pinnedOpacity: AppSettings.defaultPinnedWindowOpacity,
+        clickThroughWhenPinned: false
+    )
+
     func showMainWindow(
         initialFilePath: String,
         model: MenuBarViewModel
@@ -22,13 +34,30 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
            let hosting = window.contentViewController as? NSHostingController<AnyView> {
             hosting.rootView = root
             window.title = title
+            applyPinStyle(to: window, style: currentPinStyle)
             activateAndShow(window)
             return
         }
 
         let window = makeWindow(title: title, size: NSSize(width: 860, height: 620), rootView: root)
+        applyPinStyle(to: window, style: currentPinStyle)
         mainWindow = window
         activateAndShow(window)
+    }
+
+    func updateMainWindowPinState(
+        isPinned: Bool,
+        pinnedOpacity: Double,
+        clickThroughWhenPinned: Bool
+    ) {
+        currentPinStyle = PinStyle(
+            isPinned: isPinned,
+            pinnedOpacity: max(0.40, min(pinnedOpacity, 1.00)),
+            clickThroughWhenPinned: clickThroughWhenPinned
+        )
+
+        guard let window = mainWindow else { return }
+        applyPinStyle(to: window, style: currentPinStyle)
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -49,9 +78,24 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         window.center()
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
+        window.isMovableByWindowBackground = true
         window.delegate = self
         window.contentViewController = NSHostingController(rootView: rootView)
         return window
+    }
+
+    private func applyPinStyle(to window: NSWindow, style: PinStyle) {
+        if style.isPinned {
+            window.level = .floating
+            window.alphaValue = style.pinnedOpacity
+            window.ignoresMouseEvents = style.clickThroughWhenPinned
+            window.collectionBehavior.insert(.fullScreenAuxiliary)
+        } else {
+            window.level = .normal
+            window.alphaValue = 1.0
+            window.ignoresMouseEvents = false
+            window.collectionBehavior.remove(.fullScreenAuxiliary)
+        }
     }
 
     private func activateAndShow(_ window: NSWindow) {

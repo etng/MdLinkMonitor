@@ -17,6 +17,15 @@ struct MenuBarContentView: View {
                 }
             }
 
+            if model.isMainWindowPinned {
+                Button(model.text(.unpinMainWindow)) {
+                    runAfterMenuDismiss {
+                        model.setMainWindowPinned(false)
+                        model.openTodayMainWindow()
+                    }
+                }
+            }
+
             if !recentFilesWithoutToday.isEmpty {
                 Divider()
                 ForEach(Array(recentFilesWithoutToday.prefix(7)), id: \.path) { file in

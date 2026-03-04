@@ -23,6 +23,8 @@ func settingsStoreRoundTrip() {
         repositoryDomains: ["github.com", "gitlab.com", "self-host.example.com"],
         cloneCommandTemplate: "git clone {repo}.git",
         cloneDirectoryPath: "~/Documents/cbm/repos-custom",
+        pinnedWindowOpacity: 0.72,
+        pinnedWindowClickThrough: true,
         language: .en
     )
 
@@ -42,4 +44,13 @@ func cloneCommandTemplateFallsBackWhenMissingPlaceholder() {
 func cloneDirectoryFallsBackWhenEmpty() {
     let settings = AppSettings(cloneDirectoryPath: "   ")
     #expect(settings.cloneDirectoryPath == AppSettings.defaultCloneDirectoryPath)
+}
+
+@Test
+func pinnedWindowOpacityIsClamped() {
+    let low = AppSettings(pinnedWindowOpacity: 0.1)
+    #expect(low.pinnedWindowOpacity == 0.40)
+
+    let high = AppSettings(pinnedWindowOpacity: 1.5)
+    #expect(high.pinnedWindowOpacity == 1.00)
 }
