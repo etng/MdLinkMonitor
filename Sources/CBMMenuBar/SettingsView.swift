@@ -34,6 +34,8 @@ struct SettingsView: View {
     @State private var cloneDirectoryPath = ""
     @State private var isInitialized = false
 
+    private let settingsLabelColumnWidth: CGFloat = 210
+
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: Binding(
@@ -52,7 +54,7 @@ struct SettingsView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 12) {
                     sectionContent
                 }
                 .padding(16)
@@ -140,162 +142,172 @@ struct SettingsView: View {
     private var sectionContent: some View {
         switch selectedSection {
         case .capture:
-            toggleField(
-                title: model.text(.enableMonitoring),
-                help: local("控制是否监听剪贴板并处理链接。", "Control whether clipboard links are monitored and processed."),
-                isOn: $monitoringEnabled
-            )
-
-            toggleField(
-                title: model.text(.enableNotifications),
-                help: local("启用后会在关键操作完成时发送系统通知。", "Show system notifications for key operation results."),
-                isOn: $notificationsEnabled
-            )
-
-            toggleField(
-                title: model.text(.allowMultipleLinks),
-                help: local("关闭时只处理恰好一个 Markdown 链接的复制内容。", "When disabled, only clipboard content with exactly one markdown link is processed."),
-                isOn: $allowMultipleLinks
-            )
-
-            toggleField(
-                title: model.text(.launchAtLogin),
-                help: local("系统登录后自动启动 MdMonitor。", "Start MdMonitor automatically after user login."),
-                isOn: $launchAtLogin
-            )
-
-        case .repository:
-            VStack(alignment: .leading, spacing: 8) {
-                fieldHeader(
-                    title: model.text(.repositoryDomains),
-                    help: local("每行一个域名，例如 github.com、gitlab.com。", "One domain per line, for example github.com or gitlab.com.")
+            sectionGroup {
+                toggleField(
+                    title: model.text(.enableMonitoring),
+                    help: local("控制是否监听剪贴板并处理链接。", "Control whether clipboard links are monitored and processed."),
+                    isOn: $monitoringEnabled
                 )
-                TextEditor(text: $repositoryDomainsText)
-                    .font(.system(size: 12, weight: .regular, design: .monospaced))
-                    .frame(minHeight: 140)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    }
+
+                toggleField(
+                    title: model.text(.enableNotifications),
+                    help: local("启用后会在关键操作完成时发送系统通知。", "Show system notifications for key operation results."),
+                    isOn: $notificationsEnabled
+                )
+
+                toggleField(
+                    title: model.text(.allowMultipleLinks),
+                    help: local("关闭时只处理恰好一个 Markdown 链接的复制内容。", "When disabled, only clipboard content with exactly one markdown link is processed."),
+                    isOn: $allowMultipleLinks
+                )
+
+                toggleField(
+                    title: model.text(.launchAtLogin),
+                    help: local("系统登录后自动启动 MdMonitor。", "Start MdMonitor automatically after user login."),
+                    isOn: $launchAtLogin
+                )
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                fieldHeader(
+        case .repository:
+            sectionGroup {
+                settingRow(
+                    title: model.text(.repositoryDomains),
+                    help: local("每行一个域名，例如 github.com、gitlab.com。", "One domain per line, for example github.com or gitlab.com."),
+                    topAligned: true
+                ) {
+                    TextEditor(text: $repositoryDomainsText)
+                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .frame(minHeight: 140)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        }
+                }
+
+                settingRow(
                     title: model.text(.cloneCommandTemplate),
                     help: local(
                         "命令中必须包含 {repo} 占位符，程序会替换为仓库地址。",
                         "Template must include {repo}; the app replaces it with the repository URL."
                     )
-                )
-                TextField(model.text(.cloneCommandPlaceholder), text: $cloneCommandTemplateText)
-                    .font(.system(size: 12, weight: .regular, design: .monospaced))
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+                ) {
+                    TextField(model.text(.cloneCommandPlaceholder), text: $cloneCommandTemplateText)
+                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
-            VStack(alignment: .leading, spacing: 8) {
-                fieldHeader(
+                settingRow(
                     title: model.text(.cloneDirectory),
                     help: local(
                         "仓库克隆时的默认工作目录（会自动创建）。",
                         "Default working directory for clone commands (created automatically)."
-                    )
-                )
-                Text(cloneDirectoryPath)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(Color.secondary.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    ),
+                    topAligned: true
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(cloneDirectoryPath)
+                            .font(.system(size: 12, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color.secondary.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                Button(model.text(.chooseDirectory)) {
-                    if let path = model.pickOutputDirectory(startingPath: cloneDirectoryPath) {
-                        cloneDirectoryPath = path
+                        Button(model.text(.chooseDirectory)) {
+                            if let path = model.pickOutputDirectory(startingPath: cloneDirectoryPath) {
+                                cloneDirectoryPath = path
+                            }
+                        }
                     }
                 }
             }
 
         case .window:
-            toggleField(
-                title: model.text(.showDockIcon),
-                help: local("控制是否在 Dock 和 Cmd+Tab 中显示应用图标。", "Control Dock and Cmd+Tab icon visibility."),
-                isOn: $showDockIcon
-            )
-
-            sliderField(
-                title: model.text(.pinWindowOpacity),
-                help: local(
-                    "置顶时长期生效；在设置页可实时预览透明度。",
-                    "Applied persistently when pinned; also previewed live while editing settings."
-                ),
-                valueText: "\(Int(pinnedWindowOpacity * 100))%",
-                value: $pinnedWindowOpacity,
-                range: 0.4...1.0,
-                step: 0.05
-            )
-
-            toggleField(
-                title: model.text(.pinWindowClickThrough),
-                help: local(
-                    "开启后，置顶窗口会让鼠标事件穿透到下层应用。",
-                    "When enabled, pinned window lets mouse events pass through to underlying apps."
-                ),
-                isOn: $pinnedWindowClickThrough
-            )
-
-            sliderField(
-                title: model.text(.previewMarkdownFontSize),
-                help: local("调整 Markdown 预览区字体大小。", "Adjust markdown preview font size."),
-                valueText: "\(Int(previewMarkdownFontSize))",
-                value: $previewMarkdownFontSize,
-                range: 12...28,
-                step: 1
-            )
-
-            sliderField(
-                title: model.text(.previewCalendarScale),
-                help: local("调整日历视图整体缩放。", "Adjust calendar view scale."),
-                valueText: String(format: "%.2f", previewCalendarScale),
-                value: $previewCalendarScale,
-                range: 0.9...1.8,
-                step: 0.05
-            )
-
-        case .system:
-            VStack(alignment: .leading, spacing: 8) {
-                fieldHeader(
-                    title: model.text(.outputDirectory),
-                    help: local("用于保存每日 markdown 与日志文件。", "Directory for daily markdown and log files.")
+            sectionGroup {
+                toggleField(
+                    title: model.text(.showDockIcon),
+                    help: local("控制是否在 Dock 和 Cmd+Tab 中显示应用图标。", "Control Dock and Cmd+Tab icon visibility."),
+                    isOn: $showDockIcon
                 )
-                Text(outputDirectoryPath)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(Color.secondary.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                Button(model.text(.chooseDirectory)) {
-                    if let path = model.pickOutputDirectory(startingPath: outputDirectoryPath) {
-                        outputDirectoryPath = path
-                    }
-                }
+                sliderField(
+                    title: model.text(.pinWindowOpacity),
+                    help: local(
+                        "置顶时长期生效；在设置页可实时预览透明度。",
+                        "Applied persistently when pinned; also previewed live while editing settings."
+                    ),
+                    valueText: "\(Int(pinnedWindowOpacity * 100))%",
+                    value: $pinnedWindowOpacity,
+                    range: 0.4...1.0,
+                    step: 0.05
+                )
+
+                toggleField(
+                    title: model.text(.pinWindowClickThrough),
+                    help: local(
+                        "开启后，置顶窗口会让鼠标事件穿透到下层应用。",
+                        "When enabled, pinned window lets mouse events pass through to underlying apps."
+                    ),
+                    isOn: $pinnedWindowClickThrough
+                )
+
+                sliderField(
+                    title: model.text(.previewMarkdownFontSize),
+                    help: local("调整 Markdown 预览区字体大小。", "Adjust markdown preview font size."),
+                    valueText: "\(Int(previewMarkdownFontSize))",
+                    value: $previewMarkdownFontSize,
+                    range: 12...28,
+                    step: 1
+                )
+
+                sliderField(
+                    title: model.text(.previewCalendarScale),
+                    help: local("调整日历视图整体缩放。", "Adjust calendar view scale."),
+                    valueText: String(format: "%.2f", previewCalendarScale),
+                    value: $previewCalendarScale,
+                    range: 0.9...1.8,
+                    step: 0.05
+                )
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                fieldHeader(
-                    title: model.text(.language),
-                    help: local("切换界面语言，保存后立即生效。", "Switch application language. Takes effect right after save.")
-                )
-                Picker("", selection: $language) {
-                    ForEach(AppLanguage.allCases, id: \.self) { lang in
-                        Text(lang.displayName).tag(lang)
+        case .system:
+            sectionGroup {
+                settingRow(
+                    title: model.text(.outputDirectory),
+                    help: local("用于保存每日 markdown 与日志文件。", "Directory for daily markdown and log files."),
+                    topAligned: true
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(outputDirectoryPath)
+                            .font(.system(size: 12, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color.secondary.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                        Button(model.text(.chooseDirectory)) {
+                            if let path = model.pickOutputDirectory(startingPath: outputDirectoryPath) {
+                                outputDirectoryPath = path
+                            }
+                        }
                     }
                 }
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                settingRow(
+                    title: model.text(.language),
+                    help: local("切换界面语言，保存后立即生效。", "Switch application language. Takes effect right after save.")
+                ) {
+                    Picker("", selection: $language) {
+                        ForEach(AppLanguage.allCases, id: \.self) { lang in
+                            Text(lang.displayName).tag(lang)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }
@@ -388,9 +400,50 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private func sectionGroup<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            content()
+        }
+    }
+
+    @ViewBuilder
+    private func settingRow<Control: View>(
+        title: String,
+        help: String,
+        topAligned: Bool = false,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(alignment: topAligned ? .top : .center, spacing: 12) {
+            settingLabel(title: title, help: help, topAligned: topAligned)
+            control()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func settingLabel(title: String, help: String, topAligned: Bool) -> some View {
+        HStack(alignment: .center, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Image(systemName: "questionmark.circle")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .help(help)
+        }
+        .frame(
+            width: settingsLabelColumnWidth,
+            alignment: topAligned ? .topLeading : .leading
+        )
+    }
+
+    @ViewBuilder
     private func toggleField(title: String, help: String, isOn: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            fieldHeader(title: title, help: help)
+        settingRow(title: title, help: help) {
             Toggle("", isOn: isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
@@ -407,8 +460,7 @@ struct SettingsView: View {
         range: ClosedRange<Double>,
         step: Double
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            fieldHeader(title: title, help: help)
+        settingRow(title: title, help: help) {
             HStack(spacing: 10) {
                 Slider(value: value, in: range, step: step)
                 Text(valueText)
@@ -416,19 +468,6 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 52, alignment: .trailing)
             }
-        }
-    }
-
-    @ViewBuilder
-    private func fieldHeader(title: String, help: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(help)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
