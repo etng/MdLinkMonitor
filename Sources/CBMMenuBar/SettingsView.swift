@@ -183,6 +183,10 @@ struct SettingsView: View {
                         Spacer()
                         Button(model.text(.saveSettings)) {
                             model.saveSettings(normalizedDraftSettings)
+                            model.previewMainWindowPinBehavior(
+                                opacity: pinnedWindowOpacity,
+                                clickThrough: pinnedWindowClickThrough
+                            )
                             syncFromModel()
                         }
                         .buttonStyle(.borderedProminent)
@@ -195,6 +199,10 @@ struct SettingsView: View {
         .onAppear {
             syncFromModel()
             isInitialized = true
+            model.previewMainWindowPinBehavior(
+                opacity: pinnedWindowOpacity,
+                clickThrough: pinnedWindowClickThrough
+            )
         }
         .onChange(of: model.settings) { _ in
             syncFromModel()
@@ -214,6 +222,7 @@ struct SettingsView: View {
             )
         }
         .onDisappear {
+            isInitialized = false
             model.restoreMainWindowPinBehavior()
         }
     }
