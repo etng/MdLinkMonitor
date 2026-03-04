@@ -53,6 +53,8 @@ struct CBMCLI {
         print("output_directory=\(settings.outputDirectoryPath)")
         print("clone_command_template=\(settings.cloneCommandTemplate)")
         print("clone_directory=\(settings.cloneDirectoryPath)")
+        print("pinned_window_opacity=\(settings.pinnedWindowOpacity)")
+        print("pinned_window_click_through=\(settings.pinnedWindowClickThrough)")
         print("language=\(settings.language.rawValue)")
     }
 

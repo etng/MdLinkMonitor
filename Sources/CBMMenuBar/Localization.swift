@@ -7,6 +7,10 @@ enum L10nKey {
     case enableNotifications
     case allowMultipleLinks
     case showDockIcon
+    case pinMainWindow
+    case unpinMainWindow
+    case pinWindowOpacity
+    case pinWindowClickThrough
     case previewMarkdownFontSize
     case previewCalendarScale
     case launchAtLogin
@@ -59,6 +63,10 @@ enum AppLocalizer {
             case .enableNotifications: return "系统通知"
             case .allowMultipleLinks: return "允许多链接"
             case .showDockIcon: return "显示 Dock 图标"
+            case .pinMainWindow: return "置顶主窗口"
+            case .unpinMainWindow: return "取消置顶"
+            case .pinWindowOpacity: return "置顶透明度"
+            case .pinWindowClickThrough: return "置顶时允许鼠标穿透"
             case .previewMarkdownFontSize: return "预览 Markdown 字号"
             case .previewCalendarScale: return "日历缩放"
             case .launchAtLogin: return "开机启动"
@@ -107,6 +115,10 @@ enum AppLocalizer {
             case .enableNotifications: return "System Notifications"
             case .allowMultipleLinks: return "Allow Multiple Links"
             case .showDockIcon: return "Show Dock Icon"
+            case .pinMainWindow: return "Pin Main Window"
+            case .unpinMainWindow: return "Unpin Main Window"
+            case .pinWindowOpacity: return "Pinned Opacity"
+            case .pinWindowClickThrough: return "Enable Click-through When Pinned"
             case .previewMarkdownFontSize: return "Preview Markdown Font Size"
             case .previewCalendarScale: return "Calendar Scale"
             case .launchAtLogin: return "Launch at Login"
