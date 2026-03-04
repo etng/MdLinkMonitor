@@ -25,6 +25,7 @@ func settingsStoreRoundTrip() {
         cloneDirectoryPath: "~/Documents/cbm/repos-custom",
         pinnedWindowOpacity: 0.72,
         pinnedWindowClickThrough: true,
+        experimentalSettingsTabsEnabled: true,
         language: .en
     )
 
