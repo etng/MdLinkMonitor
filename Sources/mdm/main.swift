@@ -60,11 +60,11 @@ struct MdMCLI {
 
     private func printUsage() {
         print("""
-        cbm commands:
-          cbm today --path      Print today's markdown file path (default)
-          cbm today --print     Print today's markdown file content
-          cbm status            Print current settings snapshot
-          cbm help              Show this message
+        mdm commands:
+          mdm today --path      Print today's markdown file path (default)
+          mdm today --print     Print today's markdown file content
+          mdm status            Print current settings snapshot
+          mdm help              Show this message
         """)
     }
 }
@@ -73,7 +73,7 @@ do {
     let cli = MdMCLI()
     try cli.run(arguments: Array(CommandLine.arguments.dropFirst()))
 } catch CLIError.unknownCommand {
-    fputs("Unknown command. Use 'cbm help'.\n", stderr)
+    fputs("Unknown command. Use 'mdm help'.\n", stderr)
     exit(2)
 } catch {
     fputs("\(error.localizedDescription)\n", stderr)

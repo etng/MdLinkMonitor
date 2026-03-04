@@ -379,6 +379,35 @@ struct SettingsView: View {
             )
 
         case .system:
+            settingRow(
+                title: local("命令行工具", "Command Line Tool"),
+                help: local(
+                    "安装后可在终端使用 mdm 命令。默认安装到 /usr/local/bin/mdm，必要时会请求管理员授权。",
+                    "Install the mdm command for terminal usage. It links to /usr/local/bin/mdm and may request administrator authorization."
+                ),
+                helpMode: helpMode,
+                topAligned: true
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(model.commandLineInstallPath)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        model.installCommandLineTool()
+                    } label: {
+                        Label(
+                            model.isInstallingCommandLineTool
+                                ? local("正在安装 mdm…", "Installing mdm...")
+                                : local("安装 mdm 命令", "Install mdm Command"),
+                            systemImage: model.isInstallingCommandLineTool ? "hourglass.circle" : "terminal"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isInstallingCommandLineTool)
+                }
+            }
+
             toggleField(
                 title: local("启用实验设置界面", "Enable Experimental Settings UI"),
                 help: local("开启后使用分组 Tab 的设置界面。关闭后使用单页分组表单。", "Use tabbed settings UI when enabled. Use single grouped form when disabled."),

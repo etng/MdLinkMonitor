@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "cbm",
+    name: "mdm",
     defaultLocalization: "zh-Hans",
     platforms: [
         .macOS(.v13),
@@ -14,8 +14,8 @@ let package = Package(
             targets: ["MdMCore"]
         ),
         .executable(
-            name: "cbm",
-            targets: ["cbm"]
+            name: "mdm",
+            targets: ["mdm"]
         ),
         .executable(
             name: "MdMonitor",
@@ -31,8 +31,9 @@ let package = Package(
             name: "MdMCore"
         ),
         .executableTarget(
-            name: "cbm",
-            dependencies: ["MdMCore"]
+            name: "mdm",
+            dependencies: ["MdMCore"],
+            path: "Sources/mdm"
         ),
         .executableTarget(
             name: "MdMonitor",

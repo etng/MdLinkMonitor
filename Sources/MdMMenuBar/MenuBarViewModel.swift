@@ -11,6 +11,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var latestReleaseNotesMarkdown: String = ""
     @Published private(set) var isLoadingLatestReleaseNotes = false
     @Published private(set) var hasUpdateBadge = false
+    @Published private(set) var isInstallingCommandLineTool = false
     @Published private(set) var isMainWindowPinned = false
     @Published var toastMessage: String?
     @Published var mainWindowPanel: MainWindowPanel = .preview
@@ -107,6 +108,10 @@ final class MenuBarViewModel: ObservableObject {
 
     var cloneCommandTemplateText: String {
         settings.cloneCommandTemplate
+    }
+
+    var commandLineInstallPath: String {
+        CommandLineToolInstaller.installLinkPath
     }
 
     func updateMonitoringEnabled(_ enabled: Bool) {
@@ -261,6 +266,64 @@ final class MenuBarViewModel: ObservableObject {
             let message = local("已取消目录选择", "Directory selection canceled")
             setStatus(message)
             logger.log(.info, message)
+        }
+    }
+
+    func installCommandLineTool() {
+        guard !isInstallingCommandLineTool else { return }
+        logEvent("UI action installCommandLineTool")
+
+        guard let executablePath = CommandLineToolInstaller.findBundledExecutablePath() else {
+            let message = local(
+                "未找到 mdm 可执行文件，请先使用 release 构建或安装正式应用",
+                "Unable to find mdm executable. Build release artifacts or install the packaged app first."
+            )
+            setStatus(message)
+            logger.log(.error, message)
+            showToast(message)
+            return
+        }
+
+        isInstallingCommandLineTool = true
+        let linkPath = commandLineInstallPath
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = CommandLineToolInstaller.install(
+                executablePath: executablePath,
+                linkPath: linkPath
+            )
+
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isInstallingCommandLineTool = false
+
+                switch result {
+                case .installed(let path, let requiredAdmin):
+                    let message = requiredAdmin
+                        ? self.local("mdm 已安装（已完成管理员授权）", "mdm installed (administrator authorization completed)")
+                        : self.local("mdm 已安装", "mdm installed")
+                    self.setStatus(message)
+                    self.logger.log(.info, "\(message): \(path)")
+                    self.showToast(message)
+
+                case .cancelled:
+                    let message = self.local(
+                        "安装 mdm 已取消",
+                        "mdm installation canceled"
+                    )
+                    self.setStatus(message)
+                    self.logger.log(.warning, message)
+                    self.showToast(message)
+
+                case .failed(let reason):
+                    let message = self.local(
+                        "安装 mdm 失败，请检查权限或路径",
+                        "Failed to install mdm. Check permission and path."
+                    )
+                    self.setStatus(message)
+                    self.logger.log(.error, "\(message): \(reason)")
+                    self.showToast(message)
+                }
+            }
         }
     }
 
