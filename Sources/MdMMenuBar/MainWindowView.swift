@@ -13,6 +13,9 @@ struct MainWindowView: View {
 
     @State private var selectedFilePath: String?
     @State private var content = ""
+    @State private var isLoadingContent = false
+    @State private var latestLoadRequestID: Int = 0
+    @State private var lastLoadedSnapshot: LoadedFileSnapshot?
 
     @State private var showLogPanel = true
     @State private var todayLogContent = ""
@@ -25,6 +28,12 @@ struct MainWindowView: View {
     private let refreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     private let markdownBottomAnchor = "markdown-bottom-anchor"
     private let sidebarWidth: CGFloat = 72
+
+    private struct LoadedFileSnapshot: Equatable {
+        let path: String
+        let modifiedAt: Date
+        let size: UInt64
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -216,7 +225,16 @@ struct MainWindowView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    if content.isEmpty {
+                    if isLoadingContent {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ProgressView()
+                            Text(local("正在加载内容…", "Loading content..."))
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                    } else if content.isEmpty {
                         Text(
                             selectedFilePath == nil
                                 ? model.text(.noFileForDate)
@@ -533,6 +551,8 @@ struct MainWindowView: View {
         selectedDate = Date()
         selectedFilePath = nil
         content = ""
+        isLoadingContent = false
+        lastLoadedSnapshot = nil
         todayLogContent = ""
 
         applyNavigationRequest()
@@ -557,6 +577,8 @@ struct MainWindowView: View {
         guard let file = filesByYMD[key] else {
             selectedFilePath = nil
             content = ""
+            isLoadingContent = false
+            lastLoadedSnapshot = nil
             loadTodayLog()
             return
         }
@@ -573,13 +595,42 @@ struct MainWindowView: View {
     private func loadSelectedContent() {
         guard let currentFilePath else {
             content = ""
+            isLoadingContent = false
+            lastLoadedSnapshot = nil
             return
         }
 
-        let url = URL(filePath: currentFilePath)
-        let newContent = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        if newContent != content {
-            content = newContent
+        if let snapshot = makeFileSnapshot(for: currentFilePath),
+           snapshot == lastLoadedSnapshot {
+            isLoadingContent = false
+            return
+        }
+
+        isLoadingContent = true
+        latestLoadRequestID += 1
+        let requestID = latestLoadRequestID
+        let targetPath = currentFilePath
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let url = URL(filePath: targetPath)
+            let newContent = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+            let snapshot: LoadedFileSnapshot? = {
+                guard let attributes = try? FileManager.default.attributesOfItem(atPath: targetPath),
+                      let modifiedAt = attributes[.modificationDate] as? Date else {
+                    return nil
+                }
+                let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+                return LoadedFileSnapshot(path: targetPath, modifiedAt: modifiedAt, size: size)
+            }()
+
+            DispatchQueue.main.async {
+                guard requestID == latestLoadRequestID else { return }
+                isLoadingContent = false
+                lastLoadedSnapshot = snapshot
+                if newContent != content {
+                    content = newContent
+                }
+            }
         }
     }
 
@@ -614,6 +665,15 @@ struct MainWindowView: View {
         files = latestFiles
         filesByYMD = makeFileMapByYMD(latestFiles)
         syncSelectedFileForSelectedDate()
+    }
+
+    private func makeFileSnapshot(for path: String) -> LoadedFileSnapshot? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              let modifiedAt = attributes[.modificationDate] as? Date else {
+            return nil
+        }
+        let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+        return LoadedFileSnapshot(path: path, modifiedAt: modifiedAt, size: size)
     }
 
     private func copyMarkdownRaw() {
