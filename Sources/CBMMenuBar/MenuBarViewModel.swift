@@ -43,7 +43,8 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private static let autoUpdateInitialDelay: TimeInterval = 60
-    private static let autoUpdatePollInterval: TimeInterval = 60 * 60
+    private static let autoUpdateCheckInterval: TimeInterval = 60 * 60 * 12
+    private static let minimumAutoUpdateRescheduleInterval: TimeInterval = 60
     private static let releaseNotesCacheTTL: TimeInterval = 60 * 60 * 24
 
     init(
@@ -392,6 +393,18 @@ final class MenuBarViewModel: ObservableObject {
         showToast(message)
     }
 
+    func previewMainWindowPinBehavior(opacity: Double, clickThrough: Bool) {
+        windowPresenter.updateMainWindowPinState(
+            isPinned: isMainWindowPinned,
+            pinnedOpacity: opacity,
+            clickThroughWhenPinned: clickThrough
+        )
+    }
+
+    func restoreMainWindowPinBehavior() {
+        applyMainWindowPinBehavior()
+    }
+
     @discardableResult
     func checkForUpdates(userInitiated: Bool = true) -> AppUpdateCheckResult {
         if userInitiated {
@@ -434,7 +447,10 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private func scheduleAutoUpdateChecks() {
-        logger.log(.info, "Schedule automatic update checks with initial delay \(Int(Self.autoUpdateInitialDelay))s")
+        logger.log(
+            .info,
+            "Schedule automatic update checks with initial delay \(Int(Self.autoUpdateInitialDelay))s and interval \(Int(Self.autoUpdateCheckInterval))s"
+        )
         scheduleAutoUpdateTick(after: Self.autoUpdateInitialDelay)
     }
 
@@ -450,20 +466,28 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private func runAutomaticUpdateMaintenance() {
-        if shouldRunAutomaticUpdateCheck(now: Date()) {
+        let now = Date()
+        if shouldRunAutomaticUpdateCheck(now: now) {
             logger.log(.info, "Automatic update scan started")
-            persistLastUpdateCheck(at: Date())
+            persistLastUpdateCheck(at: now)
             loadLatestReleaseNotes(force: true, silently: true)
+            scheduleAutoUpdateTick(after: Self.autoUpdateCheckInterval)
         } else {
-            logger.log(.info, "Skip automatic update check: already checked today")
+            let remaining = remainingUntilNextAutomaticUpdateCheck(now: now)
+            logger.log(.info, "Skip automatic update check: next in \(Int(remaining))s")
+            scheduleAutoUpdateTick(after: max(Self.minimumAutoUpdateRescheduleInterval, remaining))
         }
-
-        scheduleAutoUpdateTick(after: Self.autoUpdatePollInterval)
     }
 
     private func shouldRunAutomaticUpdateCheck(now: Date) -> Bool {
         guard let last = lastUpdateCheckAt() else { return true }
-        return !Calendar.autoupdatingCurrent.isDate(last, inSameDayAs: now)
+        return now.timeIntervalSince(last) >= Self.autoUpdateCheckInterval
+    }
+
+    private func remainingUntilNextAutomaticUpdateCheck(now: Date) -> TimeInterval {
+        guard let last = lastUpdateCheckAt() else { return 0 }
+        let elapsed = max(0, now.timeIntervalSince(last))
+        return max(0, Self.autoUpdateCheckInterval - elapsed)
     }
 
     private func lastUpdateCheckAt() -> Date? {

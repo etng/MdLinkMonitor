@@ -199,6 +199,23 @@ struct SettingsView: View {
         .onChange(of: model.settings) { _ in
             syncFromModel()
         }
+        .onChange(of: pinnedWindowOpacity) { _ in
+            guard isInitialized else { return }
+            model.previewMainWindowPinBehavior(
+                opacity: pinnedWindowOpacity,
+                clickThrough: pinnedWindowClickThrough
+            )
+        }
+        .onChange(of: pinnedWindowClickThrough) { _ in
+            guard isInitialized else { return }
+            model.previewMainWindowPinBehavior(
+                opacity: pinnedWindowOpacity,
+                clickThrough: pinnedWindowClickThrough
+            )
+        }
+        .onDisappear {
+            model.restoreMainWindowPinBehavior()
+        }
     }
 
     private var normalizedDraftSettings: AppSettings {
