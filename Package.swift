@@ -41,7 +41,10 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             ],
-            path: "Sources/CBMMenuBar"
+            path: "Sources/CBMMenuBar",
+            resources: [
+                .process("Resources"),
+            ]
         ),
         .testTarget(
             name: "CBMCoreTests",
