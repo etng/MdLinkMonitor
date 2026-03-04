@@ -195,16 +195,16 @@ struct SettingsView: View {
     private var groupedFormBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                groupedSection(title: sectionTitle(.capture)) {
+                groupedSection(.capture) {
                     sectionFields(.capture, helpMode: .hover)
                 }
-                groupedSection(title: sectionTitle(.repository)) {
+                groupedSection(.repository) {
                     sectionFields(.repository, helpMode: .hover)
                 }
-                groupedSection(title: sectionTitle(.window)) {
+                groupedSection(.window) {
                     sectionFields(.window, helpMode: .hover)
                 }
-                groupedSection(title: sectionTitle(.system)) {
+                groupedSection(.system) {
                     sectionFields(.system, helpMode: .hover)
                 }
             }
@@ -213,16 +213,29 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private func groupedSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func groupedSection<Content: View>(_ section: SettingsSection, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Image(systemName: sectionSymbol(section))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text(sectionTitle(section))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+
+            Divider()
             content()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
-        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -498,6 +511,15 @@ struct SettingsView: View {
         case .repository: return local("仓库", "Repositories")
         case .window: return local("窗口", "Window")
         case .system: return local("系统", "System")
+        }
+    }
+
+    private func sectionSymbol(_ section: SettingsSection) -> String {
+        switch section {
+        case .capture: return "doc.on.clipboard"
+        case .repository: return "shippingbox"
+        case .window: return "rectangle.3.group"
+        case .system: return "gearshape.2"
         }
     }
 

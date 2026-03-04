@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarContentView: View {
     @ObservedObject var model: MenuBarViewModel
+    @Environment(\.dismiss) private var dismissMenu
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -75,8 +76,11 @@ struct MenuBarContentView: View {
     }
 
     private func runAfterMenuDismiss(_ action: @escaping @MainActor () -> Void) {
-        Task { @MainActor in
-            action()
+        dismissMenu()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+            Task { @MainActor in
+                action()
+            }
         }
     }
 
