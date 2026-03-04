@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CBMCore
+@testable import MdMCore
 
 @Test
 func appendAndDailyDedupWorks() throws {

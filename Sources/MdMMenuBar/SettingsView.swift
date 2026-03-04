@@ -1,4 +1,4 @@
-import CBMCore
+import MdMCore
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {

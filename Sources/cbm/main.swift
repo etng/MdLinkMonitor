@@ -1,11 +1,11 @@
-import CBMCore
+import MdMCore
 import Foundation
 
 enum CLIError: Error {
     case unknownCommand
 }
 
-struct CBMCLI {
+struct MdMCLI {
     private let settingsStore: any SettingsStoring
 
     init(settingsStore: any SettingsStoring = UserDefaultsSettingsStore()) {
@@ -70,7 +70,7 @@ struct CBMCLI {
 }
 
 do {
-    let cli = CBMCLI()
+    let cli = MdMCLI()
     try cli.run(arguments: Array(CommandLine.arguments.dropFirst()))
 } catch CLIError.unknownCommand {
     fputs("Unknown command. Use 'cbm help'.\n", stderr)

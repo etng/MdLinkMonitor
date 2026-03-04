@@ -1,5 +1,5 @@
 import AppKit
-import CBMCore
+import MdMCore
 import MarkdownUI
 import SwiftUI
 

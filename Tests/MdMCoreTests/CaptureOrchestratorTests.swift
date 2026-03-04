@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CBMCore
+@testable import MdMCore
 
 private final class CountingRunner: CommandRunning {
     private(set) var calls = 0
