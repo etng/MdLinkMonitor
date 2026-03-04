@@ -31,6 +31,7 @@ public struct AppSettings: Equatable, Sendable {
     public var cloneDirectoryPath: String
     public var pinnedWindowOpacity: Double
     public var pinnedWindowClickThrough: Bool
+    public var experimentalSettingsTabsEnabled: Bool
     public var language: AppLanguage
 
     public init(
@@ -47,6 +48,7 @@ public struct AppSettings: Equatable, Sendable {
         cloneDirectoryPath: String = AppSettings.defaultCloneDirectoryPath,
         pinnedWindowOpacity: Double = AppSettings.defaultPinnedWindowOpacity,
         pinnedWindowClickThrough: Bool = false,
+        experimentalSettingsTabsEnabled: Bool = false,
         language: AppLanguage = .zhHans
     ) {
         self.monitoringEnabled = monitoringEnabled
@@ -62,6 +64,7 @@ public struct AppSettings: Equatable, Sendable {
         self.cloneDirectoryPath = Self.normalizeDirectoryPath(cloneDirectoryPath, fallback: Self.defaultCloneDirectoryPath)
         self.pinnedWindowOpacity = max(0.40, min(pinnedWindowOpacity, 1.00))
         self.pinnedWindowClickThrough = pinnedWindowClickThrough
+        self.experimentalSettingsTabsEnabled = experimentalSettingsTabsEnabled
         self.language = language
     }
 
@@ -114,6 +117,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let cloneDirectoryPath = "cbm.cloneDirectoryPath"
         static let pinnedWindowOpacity = "cbm.pinnedWindowOpacity"
         static let pinnedWindowClickThrough = "cbm.pinnedWindowClickThrough"
+        static let experimentalSettingsTabsEnabled = "cbm.experimentalSettingsTabsEnabled"
         static let language = "cbm.language"
     }
 
@@ -142,6 +146,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
             cloneDirectoryPath: defaults.string(forKey: Keys.cloneDirectoryPath) ?? AppSettings.defaultCloneDirectoryPath,
             pinnedWindowOpacity: defaults.object(forKey: Keys.pinnedWindowOpacity) as? Double ?? AppSettings.defaultPinnedWindowOpacity,
             pinnedWindowClickThrough: defaults.object(forKey: Keys.pinnedWindowClickThrough) as? Bool ?? false,
+            experimentalSettingsTabsEnabled: defaults.object(forKey: Keys.experimentalSettingsTabsEnabled) as? Bool ?? false,
             language: language
         )
     }
@@ -160,6 +165,7 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.cloneDirectoryPath, forKey: Keys.cloneDirectoryPath)
         defaults.set(settings.pinnedWindowOpacity, forKey: Keys.pinnedWindowOpacity)
         defaults.set(settings.pinnedWindowClickThrough, forKey: Keys.pinnedWindowClickThrough)
+        defaults.set(settings.experimentalSettingsTabsEnabled, forKey: Keys.experimentalSettingsTabsEnabled)
         defaults.set(settings.language.rawValue, forKey: Keys.language)
     }
 }
