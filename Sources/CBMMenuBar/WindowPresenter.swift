@@ -60,6 +60,33 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         applyPinStyle(to: window, style: currentPinStyle)
     }
 
+    func previewMainWindowPinState(
+        isPinned: Bool,
+        pinnedOpacity: Double,
+        clickThroughWhenPinned: Bool
+    ) {
+        guard let window = mainWindow else { return }
+
+        let clampedOpacity = max(0.40, min(pinnedOpacity, 1.00))
+        if isPinned {
+            applyPinStyle(
+                to: window,
+                style: PinStyle(
+                    isPinned: true,
+                    pinnedOpacity: clampedOpacity,
+                    clickThroughWhenPinned: clickThroughWhenPinned
+                )
+            )
+            return
+        }
+
+        // Unpinned preview: keep normal level and interaction, only preview opacity.
+        window.level = .normal
+        window.alphaValue = clampedOpacity
+        window.ignoresMouseEvents = false
+        window.collectionBehavior.remove(.fullScreenAuxiliary)
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closing = notification.object as? NSWindow else { return }
         if closing == mainWindow {
