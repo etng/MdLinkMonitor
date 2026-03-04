@@ -97,21 +97,44 @@ struct AboutView: View {
     }
 
     private func loadDonationImage(name: String, ext: String) -> NSImage? {
-        let url =
-            Bundle.module.url(
-                forResource: name,
-                withExtension: ext,
-                subdirectory: "donations"
-            )
-            ?? Bundle.module.url(
-                forResource: name,
-                withExtension: ext
-            )
+        let fileManager = FileManager.default
+        var bundles: [Bundle] = [Bundle.main]
 
-        guard let url else {
-            return nil
+        if let resources = Bundle.main.resourceURL,
+           let entries = try? fileManager.contentsOfDirectory(
+            at: resources,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+           ) {
+            for entry in entries where entry.pathExtension == "bundle" {
+                if let bundle = Bundle(url: entry) {
+                    bundles.append(bundle)
+                }
+            }
         }
-        return NSImage(contentsOf: url)
+
+        for bundle in bundles {
+            if let url = bundle.url(forResource: name, withExtension: ext, subdirectory: "donations")
+                ?? bundle.url(forResource: name, withExtension: ext),
+               fileManager.fileExists(atPath: url.path(percentEncoded: false)),
+               let image = NSImage(contentsOf: url) {
+                return image
+            }
+        }
+
+        let fallbackURLs: [URL?] = [
+            Bundle.main.resourceURL?.appendingPathComponent("donations/\(name).\(ext)"),
+            Bundle.main.resourceURL?.appendingPathComponent("\(name).\(ext)")
+        ]
+
+        for url in fallbackURLs.compactMap({ $0 }) {
+            if fileManager.fileExists(atPath: url.path(percentEncoded: false)),
+               let image = NSImage(contentsOf: url) {
+                return image
+            }
+        }
+
+        return nil
     }
 
     private var donationMessage: String {
