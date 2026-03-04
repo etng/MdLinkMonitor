@@ -341,12 +341,6 @@ struct MainWindowView: View {
                 Text(local("更新记录", "Release Notes"))
                     .font(.headline)
                 Spacer()
-                Button {
-                    model.loadLatestReleaseNotes(force: true)
-                } label: {
-                    Label(model.text(.reload), systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(.bordered)
             }
 
             Group {
@@ -379,6 +373,9 @@ struct MainWindowView: View {
         return Button {
             if panel == .preview {
                 model.showBackToCalendarInPreview = false
+            }
+            if panel == .updates {
+                model.loadLatestReleaseNotes(force: true)
             }
             model.mainWindowPanel = panel
         } label: {

@@ -366,7 +366,7 @@ final class MenuBarViewModel: ObservableObject {
     func openUpdatesPanel() {
         logEvent("UI action openUpdatesPanel")
         openMainWindow(filePath: openTodayFilePath(), panel: .updates)
-        loadLatestReleaseNotes()
+        loadLatestReleaseNotes(force: true)
 
         let message = local("已打开更新面板", "Updates panel opened")
         setStatus(message)
@@ -394,7 +394,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func previewMainWindowPinBehavior(opacity: Double, clickThrough: Bool) {
-        windowPresenter.updateMainWindowPinState(
+        windowPresenter.previewMainWindowPinState(
             isPinned: isMainWindowPinned,
             pinnedOpacity: opacity,
             clickThroughWhenPinned: clickThrough
@@ -416,6 +416,7 @@ final class MenuBarViewModel: ObservableObject {
         case .requested:
             let now = Date()
             persistLastUpdateCheck(at: now)
+            loadLatestReleaseNotes(force: true, silently: !userInitiated)
             let message = local("已发起更新检查", "Update check requested")
             if userInitiated {
                 setStatus(message)
@@ -521,10 +522,18 @@ final class MenuBarViewModel: ObservableObject {
 
     private func hasFreshReleaseNotesCache() -> Bool {
         guard !latestReleaseNotesMarkdown.isEmpty else { return false }
+        guard !latestReleaseTag.isEmpty else { return false }
         guard defaults.object(forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt) != nil else { return false }
 
         let fetchedAt = Date(timeIntervalSince1970: defaults.double(forKey: UpdateStateKeys.cachedLatestReleaseFetchedAt))
-        return Date().timeIntervalSince(fetchedAt) < Self.releaseNotesCacheTTL
+        guard Date().timeIntervalSince(fetchedAt) < Self.releaseNotesCacheTTL else { return false }
+
+        if let cached = parseSemVer(latestReleaseTag),
+           let installed = parseSemVer(AppVersion.semVer),
+           cached < installed {
+            return false
+        }
+        return true
     }
 
     private func loadLatestReleaseNotes(force: Bool, silently: Bool) {
