@@ -65,6 +65,11 @@ app: release icon
 	mkdir -p $(APP_DIR)/Contents/MacOS $(APP_DIR)/Contents/Resources $(APP_DIR)/Contents/Frameworks
 	cp $(RELEASE_BIN) $(APP_DIR)/Contents/MacOS/$(APP_NAME)
 	cp $(CLI_RELEASE_BIN) $(APP_DIR)/Contents/Resources/$(CLI_PRODUCT)
+	@for bundle in .build/release/*.bundle; do \
+		if [ -d "$$bundle" ]; then \
+			cp -R "$$bundle" $(APP_DIR)/Contents/Resources/; \
+		fi; \
+	done
 	chmod +x $(APP_DIR)/Contents/MacOS/$(APP_NAME)
 	chmod +x $(APP_DIR)/Contents/Resources/$(CLI_PRODUCT)
 	cp packaging/Info.plist $(APP_DIR)/Contents/Info.plist
