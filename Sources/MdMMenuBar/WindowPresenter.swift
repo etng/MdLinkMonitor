@@ -66,6 +66,10 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         clickThroughWhenPinned: Bool
     ) {
         guard let window = mainWindow else { return }
+        if window.styleMask.contains(.fullScreen) {
+            applyFullScreenWindowStyle(window)
+            return
+        }
 
         let clampedOpacity = max(0.40, min(pinnedOpacity, 1.00))
         if isPinned {
@@ -94,6 +98,21 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         }
     }
 
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window == mainWindow else { return }
+        applyFullScreenWindowStyle(window)
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window == mainWindow else { return }
+        applyFullScreenWindowStyle(window)
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window == mainWindow else { return }
+        applyPinStyle(to: window, style: currentPinStyle)
+    }
+
     private func makeWindow(title: String, size: NSSize, rootView: AnyView) -> NSWindow {
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
@@ -106,12 +125,18 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.isMovableByWindowBackground = true
+        window.collectionBehavior.insert(.fullScreenPrimary)
         window.delegate = self
         window.contentViewController = NSHostingController(rootView: rootView)
         return window
     }
 
     private func applyPinStyle(to window: NSWindow, style: PinStyle) {
+        if window.styleMask.contains(.fullScreen) {
+            applyFullScreenWindowStyle(window)
+            return
+        }
+
         if style.isPinned {
             window.level = .floating
             window.alphaValue = style.pinnedOpacity
@@ -123,6 +148,13 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             window.ignoresMouseEvents = false
             window.collectionBehavior.remove(.fullScreenAuxiliary)
         }
+    }
+
+    private func applyFullScreenWindowStyle(_ window: NSWindow) {
+        window.level = .normal
+        window.alphaValue = 1.0
+        window.ignoresMouseEvents = false
+        window.collectionBehavior.remove(.fullScreenAuxiliary)
     }
 
     private func activateAndShow(_ window: NSWindow) {
