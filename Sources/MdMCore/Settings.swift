@@ -17,6 +17,9 @@ public struct AppSettings: Equatable, Sendable {
     public static let defaultCloneCommandTemplate = "git clone {repo}.git"
     public static let defaultCloneDirectoryPath = "~/Documents/cbm/repos"
     public static let defaultPinnedWindowOpacity = 0.88
+    public static let defaultRestAPIBindAddress = "127.0.0.1"
+    public static let defaultRestAPIPort = 18731
+    public static let defaultRestAPIToken = "mdmonitor-local-token"
 
     public var monitoringEnabled: Bool
     public var notificationsEnabled: Bool
@@ -31,6 +34,10 @@ public struct AppSettings: Equatable, Sendable {
     public var cloneDirectoryPath: String
     public var pinnedWindowOpacity: Double
     public var pinnedWindowClickThrough: Bool
+    public var restAPIEnabled: Bool
+    public var restAPIBindAddress: String
+    public var restAPIPort: Int
+    public var restAPIToken: String
     public var experimentalSettingsTabsEnabled: Bool
     public var language: AppLanguage
 
@@ -48,6 +55,10 @@ public struct AppSettings: Equatable, Sendable {
         cloneDirectoryPath: String = AppSettings.defaultCloneDirectoryPath,
         pinnedWindowOpacity: Double = AppSettings.defaultPinnedWindowOpacity,
         pinnedWindowClickThrough: Bool = false,
+        restAPIEnabled: Bool = false,
+        restAPIBindAddress: String = AppSettings.defaultRestAPIBindAddress,
+        restAPIPort: Int = AppSettings.defaultRestAPIPort,
+        restAPIToken: String = AppSettings.defaultRestAPIToken,
         experimentalSettingsTabsEnabled: Bool = false,
         language: AppLanguage = .zhHans
     ) {
@@ -64,6 +75,10 @@ public struct AppSettings: Equatable, Sendable {
         self.cloneDirectoryPath = Self.normalizeDirectoryPath(cloneDirectoryPath, fallback: Self.defaultCloneDirectoryPath)
         self.pinnedWindowOpacity = max(0.40, min(pinnedWindowOpacity, 1.00))
         self.pinnedWindowClickThrough = pinnedWindowClickThrough
+        self.restAPIEnabled = restAPIEnabled
+        self.restAPIBindAddress = Self.normalizeRestAPIBindAddress(restAPIBindAddress)
+        self.restAPIPort = Self.normalizeRestAPIPort(restAPIPort)
+        self.restAPIToken = Self.normalizeRestAPIToken(restAPIToken)
         self.experimentalSettingsTabsEnabled = experimentalSettingsTabsEnabled
         self.language = language
     }
@@ -95,6 +110,24 @@ public struct AppSettings: Equatable, Sendable {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? fallback : trimmed
     }
+
+    public static func normalizeRestAPIBindAddress(_ address: String) -> String {
+        let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? defaultRestAPIBindAddress : trimmed
+    }
+
+    public static func normalizeRestAPIPort(_ port: Int) -> Int {
+        (1...65535).contains(port) ? port : defaultRestAPIPort
+    }
+
+    public static func normalizeRestAPIToken(_ token: String) -> String {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? defaultRestAPIToken : trimmed
+    }
+
+    public static func makeRandomRestAPIToken() -> String {
+        UUID().uuidString.replacingOccurrences(of: "-", with: "")
+    }
 }
 
 public protocol SettingsStoring {
@@ -117,6 +150,10 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         static let cloneDirectoryPath = "cbm.cloneDirectoryPath"
         static let pinnedWindowOpacity = "cbm.pinnedWindowOpacity"
         static let pinnedWindowClickThrough = "cbm.pinnedWindowClickThrough"
+        static let restAPIEnabled = "cbm.restAPIEnabled"
+        static let restAPIBindAddress = "cbm.restAPIBindAddress"
+        static let restAPIPort = "cbm.restAPIPort"
+        static let restAPIToken = "cbm.restAPIToken"
         static let experimentalSettingsTabsEnabled = "cbm.experimentalSettingsTabsEnabled"
         static let language = "cbm.language"
     }
@@ -129,6 +166,14 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
 
     public func load() -> AppSettings {
         let language = AppLanguage(rawValue: defaults.string(forKey: Keys.language) ?? "") ?? .zhHans
+        let storedToken = defaults.string(forKey: Keys.restAPIToken) ?? ""
+        let normalizedToken: String
+        if storedToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            normalizedToken = AppSettings.makeRandomRestAPIToken()
+            defaults.set(normalizedToken, forKey: Keys.restAPIToken)
+        } else {
+            normalizedToken = AppSettings.normalizeRestAPIToken(storedToken)
+        }
 
         let domainsRaw = defaults.string(forKey: Keys.repositoryDomains) ?? "github.com,gitlab.com"
 
@@ -146,6 +191,10 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
             cloneDirectoryPath: defaults.string(forKey: Keys.cloneDirectoryPath) ?? AppSettings.defaultCloneDirectoryPath,
             pinnedWindowOpacity: defaults.object(forKey: Keys.pinnedWindowOpacity) as? Double ?? AppSettings.defaultPinnedWindowOpacity,
             pinnedWindowClickThrough: defaults.object(forKey: Keys.pinnedWindowClickThrough) as? Bool ?? false,
+            restAPIEnabled: defaults.object(forKey: Keys.restAPIEnabled) as? Bool ?? false,
+            restAPIBindAddress: defaults.string(forKey: Keys.restAPIBindAddress) ?? AppSettings.defaultRestAPIBindAddress,
+            restAPIPort: defaults.object(forKey: Keys.restAPIPort) as? Int ?? AppSettings.defaultRestAPIPort,
+            restAPIToken: normalizedToken,
             experimentalSettingsTabsEnabled: defaults.object(forKey: Keys.experimentalSettingsTabsEnabled) as? Bool ?? false,
             language: language
         )
@@ -165,6 +214,10 @@ public final class UserDefaultsSettingsStore: SettingsStoring {
         defaults.set(settings.cloneDirectoryPath, forKey: Keys.cloneDirectoryPath)
         defaults.set(settings.pinnedWindowOpacity, forKey: Keys.pinnedWindowOpacity)
         defaults.set(settings.pinnedWindowClickThrough, forKey: Keys.pinnedWindowClickThrough)
+        defaults.set(settings.restAPIEnabled, forKey: Keys.restAPIEnabled)
+        defaults.set(settings.restAPIBindAddress, forKey: Keys.restAPIBindAddress)
+        defaults.set(settings.restAPIPort, forKey: Keys.restAPIPort)
+        defaults.set(settings.restAPIToken, forKey: Keys.restAPIToken)
         defaults.set(settings.experimentalSettingsTabsEnabled, forKey: Keys.experimentalSettingsTabsEnabled)
         defaults.set(settings.language.rawValue, forKey: Keys.language)
     }

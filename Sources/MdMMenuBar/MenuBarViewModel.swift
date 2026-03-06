@@ -32,6 +32,7 @@ final class MenuBarViewModel: ObservableObject {
     private let logger: CompositeLogger
 
     private let orchestrator: ClipboardCaptureOrchestrator
+    private let restAPIServer = LocalRESTAPIServer()
     private var monitor: ClipboardMonitor?
     private let captureProcessingQueue = DispatchQueue(label: "com.y10n.mdmonitor.capture", qos: .utility)
     private var toastHideWorkItem: DispatchWorkItem?
@@ -52,6 +53,14 @@ final class MenuBarViewModel: ObservableObject {
     private static let autoUpdateCheckInterval: TimeInterval = 60 * 60 * 12
     private static let minimumAutoUpdateRescheduleInterval: TimeInterval = 60
     private static let releaseNotesCacheTTL: TimeInterval = 60 * 60 * 24
+    private static let restAPIDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     init(
         settingsStore: any SettingsStoring = UserDefaultsSettingsStore(),
@@ -98,6 +107,7 @@ final class MenuBarViewModel: ObservableObject {
         reloadRecentFiles()
         restoreCachedReleaseNotes()
         scheduleAutoUpdateChecks()
+        configureRestAPIServer()
     }
 
     func text(_ key: L10nKey) -> String {
@@ -380,6 +390,12 @@ final class MenuBarViewModel: ObservableObject {
         if previous.pinnedWindowOpacity != next.pinnedWindowOpacity ||
             previous.pinnedWindowClickThrough != next.pinnedWindowClickThrough {
             applyMainWindowPinBehavior()
+        }
+        if previous.restAPIEnabled != next.restAPIEnabled ||
+            previous.restAPIBindAddress != next.restAPIBindAddress ||
+            previous.restAPIPort != next.restAPIPort ||
+            previous.restAPIToken != next.restAPIToken {
+            configureRestAPIServer()
         }
 
         let message = local("配置已保存", "Settings saved")
@@ -769,6 +785,196 @@ final class MenuBarViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    private func configureRestAPIServer() {
+        let config = LocalRESTAPIConfiguration(
+            enabled: settings.restAPIEnabled,
+            bindAddress: settings.restAPIBindAddress,
+            port: settings.restAPIPort,
+            token: settings.restAPIToken
+        )
+
+        restAPIServer.apply(
+            configuration: config,
+            captureHandler: { [weak self] markdown, completion in
+                Task { @MainActor [weak self] in
+                    guard let self else {
+                        completion(
+                            Self.makeRESTResponse(
+                                statusCode: 500,
+                                jsonObject: ["ok": false, "error": "view model unavailable"]
+                            )
+                        )
+                        return
+                    }
+                    self.processRESTCapture(markdown: markdown, completion: completion)
+                }
+            },
+            dailyHandler: { [weak self] date, completion in
+                Task { @MainActor [weak self] in
+                    guard let self else {
+                        completion(
+                            Self.makeRESTResponse(
+                                statusCode: 500,
+                                jsonObject: ["ok": false, "error": "view model unavailable"]
+                            )
+                        )
+                        return
+                    }
+                    completion(self.buildDailyContentResponse(for: date))
+                }
+            },
+            statusHandler: { [weak self] message in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.logger.log(.info, message)
+                    self.setStatus(message)
+                }
+            }
+        )
+    }
+
+    private func processRESTCapture(
+        markdown: String,
+        completion: @escaping @Sendable (LocalRESTAPIServerResponse) -> Void
+    ) {
+        let settingsSnapshot = settings
+        let textSnapshot = markdown
+        let outputDirectory = settingsSnapshot.outputDirectoryPath
+        let allowMultiple = settingsSnapshot.allowMultipleLinks
+        let repositoryDomains = Set(settingsSnapshot.repositoryDomains)
+        let cloneCommandTemplate = settingsSnapshot.cloneCommandTemplate
+        let cloneDirectoryPath = settingsSnapshot.cloneDirectoryPath
+        let orchestrator = self.orchestrator
+
+        captureProcessingQueue.async { [weak self] in
+            let store = DailyMarkdownStore(baseDirectoryPath: outputDirectory)
+            let result = orchestrator.process(
+                clipboardText: textSnapshot,
+                allowMultipleLinks: allowMultiple,
+                repositoryDomains: repositoryDomains,
+                cloneCommandTemplate: cloneCommandTemplate,
+                cloneDirectoryPath: cloneDirectoryPath,
+                store: store
+            )
+
+            let writtenPath = store.todayFileURL().path(percentEncoded: false)
+            let response: LocalRESTAPIServerResponse
+            if result.totalCandidates == 0 {
+                response = Self.makeRESTResponse(
+                    statusCode: 422,
+                    jsonObject: [
+                        "ok": false,
+                        "message": "No markdown links detected under current settings",
+                    ]
+                )
+            } else {
+                response = Self.makeRESTResponse(
+                    statusCode: 200,
+                    jsonObject: [
+                        "ok": true,
+                        "totalCandidates": result.totalCandidates,
+                        "appendedCount": result.appendedCount,
+                        "clonedCount": result.clonedCount,
+                        "skippedCount": result.skippedCount,
+                        "errors": result.errors,
+                        "filePath": writtenPath,
+                    ]
+                )
+            }
+
+            DispatchQueue.main.async {
+                guard let self else {
+                    completion(
+                        Self.makeRESTResponse(
+                            statusCode: 500,
+                            jsonObject: ["ok": false, "error": "view model released during processing"]
+                        )
+                    )
+                    return
+                }
+
+                if result.totalCandidates == 0 {
+                    let hint = self.local(
+                        "REST 请求未识别到可处理的 Markdown 链接",
+                        "REST request did not contain processable markdown links"
+                    )
+                    self.setStatus(hint)
+                    self.logger.log(.info, hint)
+                } else {
+                    let summary = self.local(
+                        "REST 处理：识别 \(result.totalCandidates) 个链接，写入 \(result.appendedCount)，克隆 \(result.clonedCount)，跳过 \(result.skippedCount)",
+                        "REST processed: detected \(result.totalCandidates), appended \(result.appendedCount), cloned \(result.clonedCount), skipped \(result.skippedCount)"
+                    )
+                    self.setStatus(summary)
+                    self.logger.log(.info, summary)
+                    self.reloadRecentFiles()
+
+                    if !result.errors.isEmpty {
+                        self.logger.log(.error, "REST processing errors: \(result.errors.joined(separator: " | "))")
+                    }
+                }
+
+                completion(response)
+            }
+        }
+    }
+
+    private func buildDailyContentResponse(for dateString: String?) -> LocalRESTAPIServerResponse {
+        let trimmed = dateString?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        let requestedDate: Date
+        if trimmed.isEmpty {
+            requestedDate = Date()
+        } else if let parsed = Self.restAPIDateFormatter.date(from: trimmed) {
+            requestedDate = parsed
+        } else {
+            return Self.makeRESTResponse(
+                statusCode: 400,
+                jsonObject: [
+                    "ok": false,
+                    "error": "invalid date format, expected yyyy-MM-dd",
+                ]
+            )
+        }
+
+        let store = DailyMarkdownStore(baseDirectoryPath: settings.outputDirectoryPath)
+        do {
+            let content = try store.readContent(for: requestedDate)
+            let dateValue = Self.restAPIDateFormatter.string(from: requestedDate)
+            let filePath = store.fileURL(for: requestedDate).path(percentEncoded: false)
+
+            return Self.makeRESTResponse(
+                statusCode: 200,
+                jsonObject: [
+                    "ok": true,
+                    "date": dateValue,
+                    "filePath": filePath,
+                    "content": content,
+                ]
+            )
+        } catch {
+            return Self.makeRESTResponse(
+                statusCode: 500,
+                jsonObject: [
+                    "ok": false,
+                    "error": error.localizedDescription,
+                ]
+            )
+        }
+    }
+
+    nonisolated private static func makeRESTResponse(statusCode: Int, jsonObject: [String: Any]) -> LocalRESTAPIServerResponse {
+        let body: Data
+        if JSONSerialization.isValidJSONObject(jsonObject),
+           let encoded = try? JSONSerialization.data(withJSONObject: jsonObject, options: []) {
+            body = encoded
+        } else {
+            body = Data("{\"ok\":false,\"error\":\"invalid response\"}".utf8)
+        }
+
+        return LocalRESTAPIServerResponse(statusCode: statusCode, body: body)
     }
 
     private func updateSettings(_ mutation: (inout AppSettings) -> Void) {

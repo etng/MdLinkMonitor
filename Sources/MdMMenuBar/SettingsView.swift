@@ -75,6 +75,10 @@ struct SettingsView: View {
     @State private var repositoryDomainsText = ""
     @State private var cloneCommandTemplateText = ""
     @State private var cloneDirectoryPath = ""
+    @State private var restAPIEnabled = false
+    @State private var restAPIBindAddress = AppSettings.defaultRestAPIBindAddress
+    @State private var restAPIPortText = String(AppSettings.defaultRestAPIPort)
+    @State private var restAPIToken = AppSettings.defaultRestAPIToken
     @State private var experimentalSettingsTabsEnabled = false
     @State private var isInitialized = false
 
@@ -380,6 +384,66 @@ struct SettingsView: View {
             )
 
         case .system:
+            toggleField(
+                title: local("启用本地 REST API", "Enable Local REST API"),
+                help: local(
+                    "开启后提供 HTTP 接口用于提交 Markdown 链接与读取每日内容。",
+                    "Expose HTTP endpoints for submitting markdown links and reading daily content."
+                ),
+                helpMode: helpMode,
+                isOn: $restAPIEnabled
+            )
+
+            settingRow(
+                title: local("REST 监听地址", "REST Bind Address"),
+                help: local(
+                    "默认 127.0.0.1，仅本机可访问。可按需改为 0.0.0.0 对局域网开放。",
+                    "Default is 127.0.0.1 (local only). Change to 0.0.0.0 only when LAN access is required."
+                ),
+                helpMode: helpMode
+            ) {
+                TextField(AppSettings.defaultRestAPIBindAddress, text: $restAPIBindAddress)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            settingRow(
+                title: local("REST 端口", "REST Port"),
+                help: local(
+                    "端口范围 1-65535，默认 18731。",
+                    "Port range is 1-65535, default is 18731."
+                ),
+                helpMode: helpMode
+            ) {
+                TextField("", text: $restAPIPortText)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            settingRow(
+                title: local("REST Token", "REST Token"),
+                help: local(
+                    "请求需带 Authorization: Bearer <token> 或 X-MDM-Token。可点击按钮随机生成。",
+                    "Requests require Authorization: Bearer <token> or X-MDM-Token. Use Generate for a random token."
+                ),
+                helpMode: helpMode,
+                topAligned: true
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("", text: $restAPIToken)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Button(local("随机生成 Token", "Generate Token")) {
+                        restAPIToken = AppSettings.makeRandomRestAPIToken()
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
             settingRow(
                 title: local("命令行工具", "Command Line Tool"),
                 help: local(
@@ -464,6 +528,7 @@ struct SettingsView: View {
     private var normalizedDraftSettings: AppSettings {
         let parsedDomains = AppSettings.parseDomains(from: repositoryDomainsText)
         let fallbackDomains = parsedDomains.isEmpty ? ["github.com", "gitlab.com"] : parsedDomains
+        let parsedPort = Int(restAPIPortText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? AppSettings.defaultRestAPIPort
         return AppSettings(
             monitoringEnabled: monitoringEnabled,
             notificationsEnabled: notificationsEnabled,
@@ -478,6 +543,10 @@ struct SettingsView: View {
             cloneDirectoryPath: cloneDirectoryPath,
             pinnedWindowOpacity: pinnedWindowOpacity,
             pinnedWindowClickThrough: pinnedWindowClickThrough,
+            restAPIEnabled: restAPIEnabled,
+            restAPIBindAddress: restAPIBindAddress,
+            restAPIPort: parsedPort,
+            restAPIToken: restAPIToken,
             experimentalSettingsTabsEnabled: experimentalSettingsTabsEnabled,
             language: language
         )
@@ -503,6 +572,10 @@ struct SettingsView: View {
         repositoryDomainsText = current.repositoryDomains.joined(separator: "\n")
         cloneCommandTemplateText = current.cloneCommandTemplate
         cloneDirectoryPath = current.cloneDirectoryPath
+        restAPIEnabled = current.restAPIEnabled
+        restAPIBindAddress = current.restAPIBindAddress
+        restAPIPortText = String(current.restAPIPort)
+        restAPIToken = current.restAPIToken
         experimentalSettingsTabsEnabled = current.experimentalSettingsTabsEnabled
     }
 

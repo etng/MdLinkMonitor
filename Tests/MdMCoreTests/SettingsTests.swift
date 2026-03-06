@@ -25,6 +25,10 @@ func settingsStoreRoundTrip() {
         cloneDirectoryPath: "~/Documents/cbm/repos-custom",
         pinnedWindowOpacity: 0.72,
         pinnedWindowClickThrough: true,
+        restAPIEnabled: true,
+        restAPIBindAddress: "127.0.0.1",
+        restAPIPort: 19090,
+        restAPIToken: "test-token-123",
         experimentalSettingsTabsEnabled: true,
         language: .en
     )
@@ -54,4 +58,13 @@ func pinnedWindowOpacityIsClamped() {
 
     let high = AppSettings(pinnedWindowOpacity: 1.5)
     #expect(high.pinnedWindowOpacity == 1.00)
+}
+
+@Test
+func restAPIPortIsNormalized() {
+    let low = AppSettings(restAPIPort: 0)
+    #expect(low.restAPIPort == AppSettings.defaultRestAPIPort)
+
+    let high = AppSettings(restAPIPort: 70000)
+    #expect(high.restAPIPort == AppSettings.defaultRestAPIPort)
 }
