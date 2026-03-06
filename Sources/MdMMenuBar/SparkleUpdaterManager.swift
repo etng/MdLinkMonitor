@@ -24,6 +24,7 @@ final class SparkleUpdaterManager: NSObject, AppUpdaterManaging {
             userDriverDelegate: nil
         )
         super.init()
+        installSparkleWindowObservers()
     }
 
     func checkForUpdates() -> AppUpdateCheckResult {
@@ -38,5 +39,50 @@ final class SparkleUpdaterManager: NSObject, AppUpdaterManaging {
 
         updaterController.updater.checkForUpdates()
         return .requested
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func installSparkleWindowObservers() {
+        let center = NotificationCenter.default
+
+        center.addObserver(
+            self,
+            selector: #selector(handleWindowStateChanged(_:)),
+            name: NSWindow.didBecomeMainNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(handleWindowStateChanged(_:)),
+            name: NSWindow.didBecomeKeyNotification,
+            object: nil
+        )
+    }
+
+    @objc
+    private func handleWindowStateChanged(_ notification: Notification) {
+        elevateSparkleWindowIfNeeded(from: notification)
+    }
+
+    private func elevateSparkleWindowIfNeeded(from notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        guard isSparkleWindow(window) else { return }
+
+        window.level = .modalPanel
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func isSparkleWindow(_ window: NSWindow) -> Bool {
+        let className = NSStringFromClass(type(of: window))
+        if className.contains("SPU") || className.contains("Sparkle") {
+            return true
+        }
+
+        let bundleID = Bundle(for: type(of: window)).bundleIdentifier ?? ""
+        return bundleID.contains("sparkle-project")
     }
 }
