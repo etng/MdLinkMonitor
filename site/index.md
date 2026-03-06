@@ -15,7 +15,7 @@ title: MdMonitor 博客
       · {{ post.version }}
       {% endif %}
     </div>
-    <div>{{ post.excerpt | strip_html }}</div>
+    <div>{{ post.excerpt | strip_html | truncate: 160 }}</div>
   </li>
 {% endfor %}
 </ul>

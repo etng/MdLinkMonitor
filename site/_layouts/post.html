@@ -1,0 +1,13 @@
+---
+layout: default
+---
+<article>
+  <h1>{{ page.title }}</h1>
+  <p class="meta">
+    {{ page.date | date: "%Y-%m-%d" }}
+    {% if page.version %}
+    · Available since <code>{{ page.version }}</code>
+    {% endif %}
+  </p>
+  {{ content }}
+</article>

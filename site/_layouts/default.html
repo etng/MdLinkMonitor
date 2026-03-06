@@ -13,22 +13,7 @@
       <span class="sub">Build log, release notes, and product stories</span>
     </header>
 
-    <main class="shell content">
-      {% if page.layout == 'post' %}
-      <article>
-        <h1>{{ page.title }}</h1>
-        <p class="meta">
-          {{ page.date | date: "%Y-%m-%d" }}
-          {% if page.version %}
-          · Available since <code>{{ page.version }}</code>
-          {% endif %}
-        </p>
-        {{ content }}
-      </article>
-      {% else %}
-      {{ content }}
-      {% endif %}
-    </main>
+    <main class="shell content">{{ content }}</main>
 
     <footer class="shell foot">
       <span>Powered by GitHub Pages · Source in <code>site/</code></span>
