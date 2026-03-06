@@ -1,0 +1,11 @@
+title: MdMonitor Blog
+description: MdMonitor development notes and release stories
+lang: zh-CN
+timezone: Asia/Shanghai
+markdown: kramdown
+highlighter: rouge
+theme: null
+baseurl: /MdLinkMonitor
+url: https://etng.github.io
+permalink: /:categories/:title/
+excerpt_separator: "<!--more-->"

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | strip_newlines }}" />
+    <link rel="stylesheet" href="{{ '/assets/styles.css' | relative_url }}" />
+  </head>
+  <body>
+    <header class="shell">
+      <a class="brand" href="{{ '/' | relative_url }}">MdMonitor Blog</a>
+      <span class="sub">Build log, release notes, and product stories</span>
+    </header>
+
+    <main class="shell content">
+      {% if page.layout == 'post' %}
+      <article>
+        <h1>{{ page.title }}</h1>
+        <p class="meta">
+          {{ page.date | date: "%Y-%m-%d" }}
+          {% if page.version %}
+          · Available since <code>{{ page.version }}</code>
+          {% endif %}
+        </p>
+        {{ content }}
+      </article>
+      {% else %}
+      {{ content }}
+      {% endif %}
+    </main>
+
+    <footer class="shell foot">
+      <span>Powered by GitHub Pages · Source in <code>site/</code></span>
+    </footer>
+  </body>
+</html>
