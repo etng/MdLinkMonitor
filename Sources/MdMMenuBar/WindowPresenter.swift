@@ -34,6 +34,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
            let hosting = window.contentViewController as? NSHostingController<AnyView> {
             hosting.rootView = root
             window.title = title
+            window.collectionBehavior.insert(.moveToActiveSpace)
             applyPinStyle(to: window, style: currentPinStyle)
             activateAndShow(window)
             return
@@ -126,6 +127,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         window.tabbingMode = .disallowed
         window.isMovableByWindowBackground = true
         window.collectionBehavior.insert(.fullScreenPrimary)
+        window.collectionBehavior.insert(.moveToActiveSpace)
         window.delegate = self
         window.contentViewController = NSHostingController(rootView: rootView)
         return window
