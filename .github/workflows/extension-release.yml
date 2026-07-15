@@ -1,0 +1,126 @@
+name: Extension Release
+
+on:
+  push:
+    tags:
+      - "ext-v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Validate tag format
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^ext-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+            echo "Invalid tag format: $TAG"
+            echo "Expected: ext-v<MAJOR>.<MINOR>.<PATCH> (SemVer)"
+            exit 1
+          fi
+
+      - name: Validate extension version matches tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${TAG#ext-v}"
+          PACKAGE_VERSION="$(node -p "require('./extension/package.json').version")"
+          if [[ "${PACKAGE_VERSION}" != "${TAG_VERSION}" ]]; then
+            echo "Tag version (${TAG_VERSION}) does not match extension/package.json (${PACKAGE_VERSION})"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: extension
+
+      - name: Build browser packages
+        run: |
+          set -euo pipefail
+          npm run zip:chrome
+          npm run zip:firefox
+          npm run zip:edge
+        working-directory: extension
+
+      - name: Collect release assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist/ext
+          cp extension/.output/*-chrome.zip dist/ext/
+          cp extension/.output/*-firefox.zip dist/ext/
+          cp extension/.output/*-edge.zip dist/ext/
+          ls -la dist/ext
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PREV_TAG=""
+          while IFS= read -r candidate; do
+            if [[ "$candidate" == "$TAG" ]]; then
+              continue
+            fi
+            if [[ "$candidate" =~ ^ext-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+              PREV_TAG="$candidate"
+              break
+            fi
+          done < <(git tag --sort=-creatordate)
+
+          NOTES_FILE="dist/ext/release-notes.md"
+          {
+            echo "## Browser Extension ${TAG}"
+            echo
+            echo "- Packages: Chrome / Edge / Firefox"
+            echo "- Install MdMonitor desktop from: https://github.com/${REPO}/releases"
+            if [[ -n "${PREV_TAG}" ]]; then
+              echo "- Compare: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+            fi
+            echo
+            echo "### Changes"
+            if [[ -n "${PREV_TAG}" ]]; then
+              git log --no-merges --pretty='- %h %s' "${PREV_TAG}..${TAG}" -- extension .github/workflows/extension-release.yml
+            else
+              git log --no-merges --pretty='- %h %s' "${TAG}" -- extension .github/workflows/extension-release.yml
+            fi
+          } > "${NOTES_FILE}"
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/ext/*.zip --clobber
+            gh release edit "${TAG}" \
+              --title "Browser Extension ${TAG}" \
+              --notes-file dist/ext/release-notes.md \
+              --verify-tag
+          else
+            gh release create "${TAG}" dist/ext/*.zip \
+              --title "Browser Extension ${TAG}" \
+              --notes-file dist/ext/release-notes.md \
+              --verify-tag \
+              --latest=false
+          fi

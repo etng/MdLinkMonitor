@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ page.excerpt | default: site.description | strip_html | strip_newlines }}" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}" />
+    <meta property="og:description" content="{{ page.excerpt | default: site.description | strip_html | strip_newlines }}" />
+    <meta property="og:image" content="{{ '/assets/app-icon.png' | absolute_url }}" />
+    <link rel="icon" type="image/png" href="{{ '/assets/app-icon.png' | relative_url }}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geologica:wdth,wght@85..115,400..800&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ '/assets/styles.css' | relative_url }}" />
+  </head>
+  <body class="{{ page.body_class | default: 'page' }}">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+    <header class="site-header">
+      <div class="shell nav-shell">
+        <a class="brand" href="{{ '/' | relative_url }}" aria-label="MdMonitor for macOS">
+          <img src="{{ '/assets/app-icon.png' | relative_url }}" alt="" width="36" height="36" />
+          <span>MdMonitor</span>
+          <small>for macOS</small>
+        </a>
+        <nav class="site-nav" aria-label="主要导航">
+          <a href="{{ '/#features' | relative_url }}">功能</a>
+          <a href="{{ '/#extension' | relative_url }}">浏览器扩展</a>
+          <a href="{{ '/guide/' | relative_url }}">使用指南</a>
+          <a class="nav-github" href="https://github.com/etng/MdLinkMonitor">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content">{{ content }}</main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div>
+          <a class="footer-brand" href="{{ '/' | relative_url }}">MdMonitor</a>
+          <p>点一下，链接按天记录，仓库按需处理。</p>
+        </div>
+        <div class="footer-links" aria-label="页脚链接">
+          <a href="https://github.com/etng/MdLinkMonitor/releases">下载</a>
+          <a href="https://chromewebstore.google.com/detail/mdmonitor-quick-capture/mpinigfoonemogokliifbaaelcolkjfi">浏览器扩展</a>
+          <a href="{{ '/guide/' | relative_url }}">使用指南</a>
+          <a href="https://github.com/etng/MdLinkMonitor/issues">反馈问题</a>
+          <a href="{{ '/privacy/' | relative_url }}">隐私政策</a>
+        </div>
+        <p class="footer-meta">本地优先 · 免费开源 · GitHub Pages</p>
+      </div>
+    </footer>
+  </body>
+</html>

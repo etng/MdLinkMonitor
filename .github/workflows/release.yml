@@ -1,0 +1,398 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Verify Swift toolchain
+        run: |
+          set -euo pipefail
+          SWIFT_VERSION="$(swift --version | awk '/Swift version/{print $4; exit}')"
+          echo "Swift version: ${SWIFT_VERSION}"
+          if [[ "$(printf '%s\n' "${SWIFT_VERSION}" "6.2" | sort -V | tail -n1)" != "${SWIFT_VERSION}" ]]; then
+            echo "Swift ${SWIFT_VERSION} is lower than required 6.2"
+            exit 1
+          fi
+
+      - name: Validate tag format
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+            echo "Invalid tag format: $TAG"
+            echo "Expected: v<MAJOR>.<MINOR>.<PATCH> (SemVer)"
+            exit 1
+          fi
+
+      - name: Validate app version matches tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${TAG#v}"
+          SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' packaging/Info.plist)"
+          BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' packaging/Info.plist)"
+          if [[ "$SHORT_VERSION" != "$TAG_VERSION" || "$BUILD_VERSION" != "$TAG_VERSION" ]]; then
+            echo "Tag version ($TAG_VERSION) does not match Info.plist versions (short=$SHORT_VERSION build=$BUILD_VERSION)."
+            exit 1
+          fi
+
+      - name: Clean SwiftPM artifact cache
+        run: |
+          set -euo pipefail
+          rm -rf "$HOME/Library/Caches/org.swift.swiftpm/artifacts"
+
+      - name: Select signing mode
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_NOTARY_PRIVATE_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+
+          enable_signing=false
+          enable_notarization=false
+
+          if [[ -n "${APPLE_DEVELOPER_ID_CERT_P12_BASE64}" && -n "${APPLE_DEVELOPER_ID_CERT_PASSWORD}" ]]; then
+            enable_signing=true
+            echo "Developer ID signing enabled"
+          else
+            echo "::warning::Developer ID signing secrets are missing. Falling back to ad-hoc signing."
+          fi
+
+          if [[ -n "${APPLE_NOTARY_KEY_ID}" && -n "${APPLE_NOTARY_ISSUER_ID}" && -n "${APPLE_NOTARY_PRIVATE_KEY_BASE64}" ]]; then
+            enable_notarization=true
+            echo "Notarization enabled"
+          else
+            echo "::warning::Notarization secrets are missing. Release archive will not be notarized."
+          fi
+
+          {
+            echo "ENABLE_DEVELOPER_ID_SIGNING=${enable_signing}"
+            echo "ENABLE_NOTARIZATION=${enable_notarization}"
+          } >> "$GITHUB_ENV"
+
+      - name: Import Developer ID certificate
+        if: env.ENABLE_DEVELOPER_ID_SIGNING == 'true'
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          KEYCHAIN_PATH="${RUNNER_TEMP}/mdmonitor-signing.keychain-db"
+          CERT_PATH="${RUNNER_TEMP}/developer-id-cert.p12"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+
+          printf '%s' "${APPLE_DEVELOPER_ID_CERT_P12_BASE64}" | base64 --decode > "${CERT_PATH}"
+
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERT_PATH}" \
+            -k "${KEYCHAIN_PATH}" \
+            -P "${APPLE_DEVELOPER_ID_CERT_PASSWORD}" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+          EXISTING_KEYCHAINS="$(security list-keychains -d user | tr -d '"')"
+          security list-keychains -d user -s "${KEYCHAIN_PATH}" ${EXISTING_KEYCHAINS}
+          security default-keychain -d user -s "${KEYCHAIN_PATH}"
+
+          IDENTITY="$(security find-identity -v -p codesigning "${KEYCHAIN_PATH}" | sed -n 's/.*\"\\(Developer ID Application:.*\\)\"/\\1/p' | head -n 1)"
+          if [[ -z "${IDENTITY}" ]]; then
+            echo "Developer ID Application identity not found after certificate import"
+            security find-identity -v -p codesigning "${KEYCHAIN_PATH}" || true
+            exit 1
+          fi
+
+          {
+            echo "CODESIGN_IDENTITY=${IDENTITY}"
+            echo "SIGNING_KEYCHAIN_PATH=${KEYCHAIN_PATH}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build distributable
+        env:
+          CODESIGN_IDENTITY: ${{ env.CODESIGN_IDENTITY }}
+        run: |
+          set -euo pipefail
+          make dmg
+
+      - name: Verify app signature
+        run: |
+          set -euo pipefail
+          codesign --verify --deep --strict --verbose=2 "dist/MdMonitor.app"
+          codesign -dv --verbose=4 "dist/MdMonitor.app"
+
+      - name: Validate DMG layout
+        if: hashFiles('dist/MdMonitor.dmg') != ''
+        run: |
+          set -euo pipefail
+          MOUNT_POINT="/tmp/mdmonitor-dmg-check"
+          rm -rf "${MOUNT_POINT}"
+          mkdir -p "${MOUNT_POINT}"
+          hdiutil attach "dist/MdMonitor.dmg" -nobrowse -readonly -mountpoint "${MOUNT_POINT}"
+          trap 'hdiutil detach "${MOUNT_POINT}" || true' EXIT
+
+          test -d "${MOUNT_POINT}/MdMonitor.app"
+          
+          APPS_LINK=""
+          while IFS= read -r candidate; do
+            if [[ "$(readlink "${candidate}")" == "/Applications" ]]; then
+              APPS_LINK="${candidate}"
+              break
+            fi
+          done < <(find "${MOUNT_POINT}" -maxdepth 1 -type l -print)
+
+          if [[ -z "${APPS_LINK}" ]]; then
+            echo "No Applications symlink found in mounted DMG"
+            ls -la "${MOUNT_POINT}"
+            exit 1
+          fi
+
+          echo "Validated Applications link: ${APPS_LINK##*/} -> /Applications"
+
+          hdiutil detach "${MOUNT_POINT}"
+          trap - EXIT
+
+      - name: Notarize release archive
+        if: env.ENABLE_DEVELOPER_ID_SIGNING == 'true' && env.ENABLE_NOTARIZATION == 'true'
+        env:
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_NOTARY_PRIVATE_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+
+          if [[ -f "dist/MdMonitor.dmg" ]]; then
+            ARCHIVE_PATH="dist/MdMonitor.dmg"
+          elif [[ -f "dist/MdMonitor.zip" ]]; then
+            ARCHIVE_PATH="dist/MdMonitor.zip"
+          else
+            echo "No release archive found in dist/"
+            exit 1
+          fi
+
+          NOTARY_KEY_PATH="${RUNNER_TEMP}/AuthKey_${APPLE_NOTARY_KEY_ID}.p8"
+          printf '%s' "${APPLE_NOTARY_PRIVATE_KEY_BASE64}" | base64 --decode > "${NOTARY_KEY_PATH}"
+
+          xcrun notarytool submit "${ARCHIVE_PATH}" \
+            --key "${NOTARY_KEY_PATH}" \
+            --key-id "${APPLE_NOTARY_KEY_ID}" \
+            --issuer "${APPLE_NOTARY_ISSUER_ID}" \
+            --wait
+
+          if [[ "${ARCHIVE_PATH}" == *.dmg ]]; then
+            xcrun stapler staple "${ARCHIVE_PATH}"
+          fi
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PREV_TAG=""
+          MERGED_REF="${TAG}^"
+          if ! git rev-parse --verify "${TAG}^" >/dev/null 2>&1; then
+            MERGED_REF="$TAG"
+          fi
+
+          while IFS= read -r candidate; do
+            if [[ "$candidate" == "$TAG" ]]; then
+              continue
+            fi
+            if [[ "$candidate" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+              PREV_TAG="$candidate"
+              break
+            fi
+          done < <(git tag --merged "$MERGED_REF" --sort=-creatordate || true)
+
+          if [[ -n "$PREV_TAG" ]]; then
+            RANGE="${PREV_TAG}..${TAG}"
+          else
+            RANGE="$TAG"
+          fi
+
+          NOTES_FILE="dist/release-notes.md"
+          mkdir -p dist
+
+          {
+            echo "## Release ${TAG}"
+            echo
+            if [[ -n "$PREV_TAG" ]]; then
+              echo "- Compare: https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+            else
+              echo "- Details: https://github.com/${REPO}/releases/tag/${TAG}"
+            fi
+            echo
+            echo "## Changes"
+          } > "$NOTES_FILE"
+
+          LOG_LINES=$(git log --no-merges --pretty='- %s (%h)' "$RANGE" || true)
+          if [[ -z "${LOG_LINES}" ]]; then
+            echo "- No commits found in this range" >> "$NOTES_FILE"
+          else
+            echo "$LOG_LINES" >> "$NOTES_FILE"
+          fi
+
+          echo "Generated release notes:"
+          cat "$NOTES_FILE"
+
+      - name: Validate Sparkle signing configuration
+        env:
+          SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_PUBLIC_KEY}" ]]; then
+            echo "Missing secret: SPARKLE_PUBLIC_KEY"
+            exit 1
+          fi
+          PLIST_PUBLIC_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' packaging/Info.plist)"
+          if [[ "${PLIST_PUBLIC_KEY}" != "${SPARKLE_PUBLIC_KEY}" ]]; then
+            echo "Info.plist SUPublicEDKey does not match GitHub secret SPARKLE_PUBLIC_KEY"
+            exit 1
+          fi
+
+      - name: Build Sparkle sign_update tool
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project .build/checkouts/Sparkle/Sparkle.xcodeproj \
+            -scheme sign_update \
+            -configuration Release \
+            -derivedDataPath build/sparkle-tools \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            > /tmp/sign_update_build.log
+          test -x build/sparkle-tools/Build/Products/Release/sign_update
+
+      - name: Sign release archive
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_PRIVATE_KEY}" ]]; then
+            echo "Missing secret: SPARKLE_PRIVATE_KEY"
+            exit 1
+          fi
+
+          if [[ -f "dist/MdMonitor.dmg" ]]; then
+            ASSET_NAME="MdMonitor.dmg"
+            MIME_TYPE="application/x-apple-diskimage"
+            ASSET_PATH="dist/MdMonitor.dmg"
+          elif [[ -f "dist/MdMonitor.zip" ]]; then
+            ASSET_NAME="MdMonitor.zip"
+            MIME_TYPE="application/zip"
+            ASSET_PATH="dist/MdMonitor.zip"
+          else
+            echo "No release archive found in dist/"
+            exit 1
+          fi
+
+          ASSET_SIZE="$(stat -f%z "${ASSET_PATH}")"
+          SIGN_UPDATE_BIN="build/sparkle-tools/Build/Products/Release/sign_update"
+
+          ED_SIGNATURE="$(printf '%s' "${SPARKLE_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" --ed-key-file - -p "${ASSET_PATH}")"
+          printf '%s' "${SPARKLE_PRIVATE_KEY}" | "${SIGN_UPDATE_BIN}" --ed-key-file - --verify "${ASSET_PATH}" "${ED_SIGNATURE}"
+
+          {
+            echo "ASSET_NAME=${ASSET_NAME}"
+            echo "ASSET_PATH=${ASSET_PATH}"
+            echo "ASSET_SIZE=${ASSET_SIZE}"
+            echo "MIME_TYPE=${MIME_TYPE}"
+            echo "ED_SIGNATURE=${ED_SIGNATURE}"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate appcast
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${TAG#v}"
+          APPCAST_FILE="dist/appcast.xml"
+          RELEASE_NOTES_FILE="dist/release-notes.md"
+          PUB_DATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
+
+          ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET_NAME}"
+          FEED_LINK="https://github.com/${REPO}/releases/latest/download/appcast.xml"
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
+          DESCRIPTION_HTML_FILE="dist/release-notes.sparkle.html"
+          {
+            echo "<h2>Release ${TAG}</h2>"
+            echo "<p><a href=\"${RELEASE_URL}\">View release on GitHub</a></p>"
+            echo "<ul>"
+            sed -n 's/^- //p' "${RELEASE_NOTES_FILE}" | while IFS= read -r line; do
+              safe_line="$(printf '%s' "${line}" | sed 's/&/\\&amp;/g; s/</\\&lt;/g; s/>/\\&gt;/g')"
+              echo "<li>${safe_line}</li>"
+            done
+            echo "</ul>"
+          } > "${DESCRIPTION_HTML_FILE}"
+          DESCRIPTION_HTML="$(cat "${DESCRIPTION_HTML_FILE}")"
+
+          cat > "${APPCAST_FILE}" <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0"
+              xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+              xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>MdMonitor Updates</title>
+              <link>${FEED_LINK}</link>
+              <description>MdMonitor release feed</description>
+              <language>en</language>
+              <item>
+                <title>${TAG}</title>
+                <link>${RELEASE_URL}</link>
+                <description><![CDATA[${DESCRIPTION_HTML}]]></description>
+                <pubDate>${PUB_DATE}</pubDate>
+                <enclosure
+                  url="${ASSET_URL}"
+                  length="${ASSET_SIZE}"
+                  type="${MIME_TYPE}"
+                  sparkle:edSignature="${ED_SIGNATURE}"
+                  sparkle:version="${VERSION}"
+                  sparkle:shortVersionString="${VERSION}" />
+              </item>
+            </channel>
+          </rss>
+          XML
+
+          echo "Generated appcast:"
+          cat "${APPCAST_FILE}"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body_path: dist/release-notes.md
+          files: |
+            dist/MdMonitor.dmg
+            dist/MdMonitor.zip
+            dist/appcast.xml
+          fail_on_unmatched_files: false

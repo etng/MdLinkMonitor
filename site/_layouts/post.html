@@ -1,0 +1,17 @@
+---
+layout: default
+---
+<div class="shell page-shell">
+  <article class="prose post">
+    <a class="back-link" href="{{ '/' | relative_url }}">← 返回 MdMonitor 首页</a>
+    <p class="eyebrow">BUILD LOG</p>
+    <h1>{{ page.title }}</h1>
+    <p class="meta">
+      {{ page.date | date: "%Y-%m-%d" }}
+      {% if page.version %}
+      · 自 <code>{{ page.version }}</code> 起可用
+      {% endif %}
+    </p>
+    {{ content }}
+  </article>
+</div>

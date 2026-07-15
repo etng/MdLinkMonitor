@@ -1,0 +1,26 @@
+{
+  "name": "mdmonitor-browser-extension",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "description": "Browser extension for copying the current page as a Markdown link for MdMonitor.",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:chrome": "wxt build -b chrome",
+    "build:firefox": "wxt build -b firefox",
+    "build:edge": "wxt build -b edge",
+    "zip:chrome": "wxt zip -b chrome",
+    "zip:firefox": "wxt zip -b firefox",
+    "zip:edge": "wxt zip -b edge",
+    "zip:all": "npm run zip:chrome && npm run zip:firefox && npm run zip:edge"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "wxt": "^0.20.18"
+  }
+}

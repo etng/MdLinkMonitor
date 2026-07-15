@@ -1,0 +1,11 @@
+title: MdMonitor
+description: MdMonitor 是一款本地优先的 macOS 菜单栏工具，把浏览器里的发现自动整理成每日 Markdown、仓库克隆与可检索资料库。
+lang: zh-CN
+timezone: Asia/Shanghai
+markdown: kramdown
+highlighter: rouge
+theme: null
+baseurl: /MdLinkMonitor
+url: https://etng.github.io
+permalink: /:categories/:title/
+excerpt_separator: "<!--more-->"

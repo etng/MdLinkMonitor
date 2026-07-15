@@ -1,0 +1,16 @@
+.DS_Store
+/.codegraph/
+/.docs/
+/.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+/build
+/dist
+/extension/node_modules
+/extension/.output
+/extension/.wxt
+/docs/bad_layout.png
